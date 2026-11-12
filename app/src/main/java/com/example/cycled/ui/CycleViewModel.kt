@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.cycled.CycledApplication
 import com.example.cycled.data.CycleRepository
 import com.example.cycled.data.FlowLevel
+import com.example.cycled.data.PeriodDay
 import com.example.cycled.domain.Period
 import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,6 +18,12 @@ import kotlinx.coroutines.launch
 
 class CycleViewModel(private val repository: CycleRepository) : ViewModel() {
 
+    /** The individual logged bleeding days, ordered by date, each with its flow level. */
+    val periodDays: StateFlow<List<PeriodDay>> =
+        repository.observePeriodDays()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Those days grouped into whole periods by groupIntoPeriods(). */
     val periods: StateFlow<List<Period>> =
         repository.observePeriods()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

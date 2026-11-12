@@ -22,7 +22,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.cycled.ui.CycleViewModel
+import com.example.cycled.ui.log.LogRoute
 import com.example.cycled.ui.theme.CycledTheme
 
 /**
@@ -53,11 +55,12 @@ class MainActivity : ComponentActivity() {
         // Everything inside is built from @Composable functions.
         setContent {
             CycledTheme {
-                // Scaffold is a basic screen layout. innerPadding keeps our
-                // content away from the status bar / navigation bar.
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    LearningScreen(modifier = Modifier.padding(innerPadding))
-                }
+                // The ViewModel survives rotation; its Factory pulls the
+                // repository from CycledApplication.
+                val cycleViewModel: CycleViewModel = viewModel(factory = CycleViewModel.Factory)
+                // LogScreen has its own Scaffold, which pads its content away
+                // from the status bar / navigation bar.
+                LogRoute(cycleViewModel)
             }
         }
     }
