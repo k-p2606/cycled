@@ -9,8 +9,9 @@ import com.example.cycled.CycledApplication
 import com.example.cycled.data.CycleRepository
 import com.example.cycled.data.FlowLevel
 import com.example.cycled.data.PeriodDay
+import com.example.cycled.domain.AverageCyclePredictor
+import com.example.cycled.domain.CyclePredictor
 import com.example.cycled.domain.Period
-import com.example.cycled.domain.cycleStatus
 import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 class CycleViewModel(
     private val repository: CycleRepository,
     private val today: () -> LocalDate = { LocalDate.now() },
+    private val predictor: CyclePredictor = AverageCyclePredictor(),
 ) : ViewModel() {
 
     /** The individual logged bleeding days, ordered by date, each with its flow level. */
@@ -36,10 +38,7 @@ class CycleViewModel(
     /** Home's state, recalculated whenever a period day is logged or removed. */
     val homeState: StateFlow<HomeUiState> =
         repository.observePeriods()
-            .map { periods ->
-                val status = cycleStatus(periods, today())
-                if (status == null) HomeUiState.NoData else HomeUiState.Ready(status)
-            }
+            .map { periods -> buildHomeState(periods, today(), predictor) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)
 
     fun logPeriodDay(date: LocalDate, flow: FlowLevel) {
