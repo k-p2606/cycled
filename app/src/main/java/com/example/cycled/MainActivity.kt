@@ -38,7 +38,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cycled.ui.CycleViewModel
-import com.example.cycled.ui.log.LogRoute
+import com.example.cycled.ui.CycledNavHost
 import com.example.cycled.ui.theme.CycledTheme
 
 /**
@@ -58,9 +58,9 @@ class MainActivity : ComponentActivity() {
                 // The ViewModel survives rotation; its Factory pulls the
                 // repository from CycledApplication.
                 val cycleViewModel: CycleViewModel = viewModel(factory = CycleViewModel.Factory)
-                // LogScreen has its own Scaffold, which pads its content away
-                // from the status bar / navigation bar.
-                LogRoute(cycleViewModel)
+                // Opens on Home; each screen has its own Scaffold, which pads
+                // its content away from the status bar / navigation bar.
+                CycledNavHost(cycleViewModel)
             }
         }
     }

@@ -26,6 +26,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,12 +53,13 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 @Composable
-fun LogRoute(viewModel: CycleViewModel, modifier: Modifier = Modifier) {
+fun LogRoute(viewModel: CycleViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val periodDays by viewModel.periodDays.collectAsStateWithLifecycle()
     LogScreen(
         periodDays = periodDays,
         onSave = viewModel::logPeriodDay,
         onRemove = viewModel::removePeriodDay,
+        onBack = onBack,
         modifier = modifier,
     )
 }
@@ -68,6 +70,7 @@ fun LogScreen(
     periodDays: List<PeriodDay>,
     onSave: (LocalDate, FlowLevel) -> Unit,
     onRemove: (LocalDate) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val today = LocalDate.now()
@@ -104,6 +107,13 @@ fun LogScreen(
 
     Scaffold(
         modifier = modifier,
+        topBar = {
+            // No icon library on the classpath, so the back button is a text button.
+            TopAppBar(
+                title = { Text("Log period") },
+                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
@@ -114,8 +124,6 @@ fun LogScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Log period", style = MaterialTheme.typography.headlineMedium)
-
             OutlinedButton(
                 onClick = { showDatePicker = true },
                 modifier = Modifier.fillMaxWidth(),
@@ -238,7 +246,7 @@ private fun Long.utcMillisToLocalDate(): LocalDate =
 @Composable
 private fun LogScreenEmptyPreview() {
     CycledTheme {
-        LogScreen(periodDays = emptyList(), onSave = { _, _ -> }, onRemove = {})
+        LogScreen(periodDays = emptyList(), onSave = { _, _ -> }, onRemove = {}, onBack = {})
     }
 }
 
@@ -255,6 +263,7 @@ private fun LogScreenWithEntriesPreview() {
             ),
             onSave = { _, _ -> },
             onRemove = {},
+            onBack = {},
         )
     }
 }
