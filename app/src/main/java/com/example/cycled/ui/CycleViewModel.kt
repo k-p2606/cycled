@@ -12,6 +12,7 @@ import com.example.cycled.data.PeriodDay
 import com.example.cycled.domain.AverageCyclePredictor
 import com.example.cycled.domain.CyclePredictor
 import com.example.cycled.domain.Period
+import com.example.cycled.domain.groupIntoPeriods
 import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +47,26 @@ class CycleViewModel(
         repository.observePeriods()
             .map { periods -> buildHomeState(periods, today(), predictor) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)
+
+    /**
+     * Calendar's state, recalculated whenever a period day is logged or removed.
+     * Logged days and periods come from the same emission so they never disagree.
+     */
+    val calendarState: StateFlow<CalendarUiState> =
+        repository.observePeriodDays()
+            .map { days ->
+                buildCalendarState(
+                    loggedDays = days.associate { it.date to it.flow },
+                    periods = groupIntoPeriods(days.map { it.date }),
+                    today = today(),
+                    predictor = predictor,
+                )
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                buildCalendarState(emptyMap(), emptyList(), today(), predictor),
+            )
 
     fun logPeriodDay(date: LocalDate, flow: FlowLevel) {
         viewModelScope.launch { repository.logPeriodDay(date, flow) }

@@ -19,20 +19,24 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.content.res.Configuration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.cycled.domain.AverageCyclePredictor
-import com.example.cycled.domain.CycleDefaults
 import com.example.cycled.domain.CycleStatus
 import com.example.cycled.domain.Period
 import com.example.cycled.domain.Phase
+import com.example.cycled.ui.CycleMessages
 import com.example.cycled.ui.CycleViewModel
 import com.example.cycled.ui.HomeUiState
 import com.example.cycled.ui.buildHomeState
+import com.example.cycled.ui.displayName
+import com.example.cycled.ui.phaseBarModel
 import com.example.cycled.ui.theme.CycledTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -86,7 +90,7 @@ fun HomeScreen(
                     NextPeriodCard(state)
                     CurrentPhaseCard(state)
                     Text(
-                        "Estimates based on your logged dates. Not medical advice or contraception.",
+                        CycleMessages.ESTIMATES_DISCLAIMER,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -127,14 +131,13 @@ private fun ReadyContent(status: CycleStatus) {
 @Composable
 private fun NextPeriodCard(state: HomeUiState.Ready) {
     val prediction = state.prediction
-    // Today, worked out from the status so this screen never reads the clock.
-    val today = state.status.lastPeriod.start.plusDays(state.status.cycleDay - 1L)
+    val today = state.today
     val range = "Likely between ${prediction.earliest.format(DateFormatter)} and " +
         prediction.latest.format(DateFormatter)
 
     val (headline, detail) = when {
         state.isLate ->
-            "Your period may be late" to "Expected around ${prediction.nextStart.format(DateFormatter)}"
+            CycleMessages.PERIOD_MAY_BE_LATE to "Expected around ${prediction.nextStart.format(DateFormatter)}"
         today == prediction.nextStart ->
             "Expected today" to range
         else -> {
@@ -144,7 +147,7 @@ private fun NextPeriodCard(state: HomeUiState.Ready) {
     }
 
     val basis = when (prediction.basedOnCycles) {
-        0 -> "Based on a typical ${CycleDefaults.CYCLE_LENGTH_DAYS}-day cycle until you've logged two periods"
+        0 -> CycleMessages.PLACEHOLDER_BASIS
         1 -> "Based on your last cycle"
         else -> "Based on your last ${prediction.basedOnCycles} cycles"
     }
@@ -156,17 +159,31 @@ private fun NextPeriodCard(state: HomeUiState.Ready) {
 private fun CurrentPhaseCard(state: HomeUiState.Ready) {
     val phase = state.currentPhase ?: return
     val range = state.phases.ranges.firstOrNull { it.phase == phase }
+    val barModel = remember(state.phases, state.today) { phaseBarModel(state.phases, state.today) }
 
     InfoCard(
         label = "Current phase",
-        headline = phase.title,
+        headline = phase.displayName,
         detail = range?.let { "${it.start.format(DateFormatter)} – ${it.end.format(DateFormatter)}" },
         footnote = phase.description,
-    )
+    ) {
+        // Hidden when there's no model (late or before the cycle); the text above still shows.
+        if (barModel != null) PhaseBar(barModel, modifier = Modifier.padding(top = 12.dp))
+    }
 }
 
+/** Today, worked out from the status so this screen never reads the clock. */
+private val HomeUiState.Ready.today: LocalDate
+    get() = status.lastPeriod.start.plusDays(status.cycleDay - 1L)
+
 @Composable
-private fun InfoCard(label: String, headline: String, detail: String?, footnote: String) {
+private fun InfoCard(
+    label: String,
+    headline: String,
+    detail: String?,
+    footnote: String,
+    extra: (@Composable () -> Unit)? = null,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -186,17 +203,10 @@ private fun InfoCard(label: String, headline: String, detail: String?, footnote:
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            extra?.invoke()
         }
     }
 }
-
-private val Phase.title: String
-    get() = when (this) {
-        Phase.MENSTRUAL -> "Menstrual"
-        Phase.FOLLICULAR -> "Follicular"
-        Phase.OVULATORY -> "Ovulatory"
-        Phase.LUTEAL -> "Luteal"
-    }
 
 private val Phase.description: String
     get() = when (this) {
@@ -236,7 +246,7 @@ private fun HomeScreenNoDataPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, heightDp = 1100)
 @Composable
 private fun HomeScreenMidCyclePreview() {
     val state = buildHomeState(
@@ -249,7 +259,8 @@ private fun HomeScreenMidCyclePreview() {
     }
 }
 
-@Preview(showBackground = true)
+/** A menstrual-phase day: the period started today-2 and may still be going. */
+@Preview(showBackground = true, heightDp = 1100)
 @Composable
 private fun HomeScreenOnPeriodPreview() {
     val state = buildHomeState(
@@ -300,6 +311,36 @@ private fun HomeScreenLatePreview() {
         predictor = AverageCyclePredictor(),
     )
     CycledTheme {
+        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
+    }
+}
+
+/** 20-day cycles: ovulation lands right after the period, so there's no follicular segment. */
+@Preview(showBackground = true, heightDp = 1100)
+@Composable
+private fun HomeScreenShortCyclePreview() {
+    val state = buildHomeState(
+        periods = listOf(
+            Period(LocalDate.of(2026, 10, 12), LocalDate.of(2026, 10, 16)),
+            Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5)),
+        ),
+        today = LocalDate.of(2026, 11, 7),
+        predictor = AverageCyclePredictor(),
+    )
+    CycledTheme {
+        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
+    }
+}
+
+@Preview(showBackground = true, heightDp = 1100, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun HomeScreenMidCycleDarkPreview() {
+    val state = buildHomeState(
+        periods = listOf(Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5))),
+        today = LocalDate.of(2026, 11, 13),
+        predictor = AverageCyclePredictor(),
+    )
+    CycledTheme(darkTheme = true, dynamicColor = false) {
         HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
     }
 }
