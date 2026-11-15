@@ -55,8 +55,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun LogRoute(viewModel: CycleViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val periodDays by viewModel.periodDays.collectAsStateWithLifecycle()
+    val recentlyLogged by viewModel.recentlyLoggedDays.collectAsStateWithLifecycle()
     LogScreen(
         periodDays = periodDays,
+        recentlyLogged = recentlyLogged,
         onSave = viewModel::logPeriodDay,
         onRemove = viewModel::removePeriodDay,
         onBack = onBack,
@@ -68,6 +70,7 @@ fun LogRoute(viewModel: CycleViewModel, onBack: () -> Unit, modifier: Modifier =
 @Composable
 fun LogScreen(
     periodDays: List<PeriodDay>,
+    recentlyLogged: List<PeriodDay>,
     onSave: (LocalDate, FlowLevel) -> Unit,
     onRemove: (LocalDate) -> Unit,
     onBack: () -> Unit,
@@ -171,7 +174,8 @@ fun LogScreen(
             HorizontalDivider()
 
             Text("Recently logged", style = MaterialTheme.typography.titleMedium)
-            val recent = periodDays.sortedByDescending { it.date }.take(7)
+            // Ordered by when each day was saved (newest first), not by date.
+            val recent = recentlyLogged
             if (recent.isEmpty()) {
                 Text(
                     "Nothing logged yet.",
@@ -246,7 +250,7 @@ private fun Long.utcMillisToLocalDate(): LocalDate =
 @Composable
 private fun LogScreenEmptyPreview() {
     CycledTheme {
-        LogScreen(periodDays = emptyList(), onSave = { _, _ -> }, onRemove = {}, onBack = {})
+        LogScreen(periodDays = emptyList(), recentlyLogged = emptyList(), onSave = { _, _ -> }, onRemove = {}, onBack = {})
     }
 }
 
@@ -254,13 +258,15 @@ private fun LogScreenEmptyPreview() {
 @Composable
 private fun LogScreenWithEntriesPreview() {
     val today = LocalDate.now()
+    val days = listOf(
+        PeriodDay(today.minusDays(2), FlowLevel.LIGHT),
+        PeriodDay(today.minusDays(1), FlowLevel.HEAVY),
+        PeriodDay(today, FlowLevel.MEDIUM),
+    )
     CycledTheme {
         LogScreen(
-            periodDays = listOf(
-                PeriodDay(today.minusDays(2), FlowLevel.LIGHT),
-                PeriodDay(today.minusDays(1), FlowLevel.HEAVY),
-                PeriodDay(today, FlowLevel.MEDIUM),
-            ),
+            periodDays = days,
+            recentlyLogged = days.reversed(),
             onSave = { _, _ -> },
             onRemove = {},
             onBack = {},

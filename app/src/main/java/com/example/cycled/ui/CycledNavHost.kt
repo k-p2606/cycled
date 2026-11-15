@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.cycled.ui.calendar.CalendarRoute
 import com.example.cycled.ui.home.HomeRoute
 import com.example.cycled.ui.log.LogRoute
 
@@ -13,11 +14,12 @@ import com.example.cycled.ui.log.LogRoute
 object CycledDestinations {
     const val HOME = "home"
     const val LOG = "log"
+    const val CALENDAR = "calendar"
 }
 
 /**
- * The app's screens. Both get the same [viewModel], so a day saved on Log shows
- * on Home as soon as you go back.
+ * The app's screens. All of them get the same [viewModel], so a day saved on Log
+ * shows on Home and Calendar as soon as you go back.
  */
 @Composable
 fun CycledNavHost(
@@ -31,10 +33,16 @@ fun CycledNavHost(
                 onLogClick = {
                     navController.navigate(CycledDestinations.LOG) { launchSingleTop = true }
                 },
+                onCalendarClick = {
+                    navController.navigate(CycledDestinations.CALENDAR) { launchSingleTop = true }
+                },
             )
         }
         composable(CycledDestinations.LOG) {
             LogRoute(viewModel = viewModel, onBack = dropUnlessResumed { navController.popBackStack() })
+        }
+        composable(CycledDestinations.CALENDAR) {
+            CalendarRoute(viewModel = viewModel, onBack = dropUnlessResumed { navController.popBackStack() })
         }
     }
 }

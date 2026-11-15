@@ -3,6 +3,7 @@ package com.example.cycled.data
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -65,6 +66,51 @@ class CycledDatabaseTest {
         periodDayDao.delete(date)
 
         assertTrue(periodDayDao.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun recentlyLogged_ordersByLoggedAtNotDate() = runBlocking {
+        val nov5 = PeriodDay(LocalDate.of(2026, 11, 5), FlowLevel.MEDIUM, loggedAt = 1_000L)
+        val sep3 = PeriodDay(LocalDate.of(2026, 9, 3), FlowLevel.LIGHT, loggedAt = 2_000L)
+
+        // Later date logged first, earlier date logged second.
+        periodDayDao.upsert(nov5)
+        periodDayDao.upsert(sep3)
+
+        assertEquals(listOf(sep3, nov5), periodDayDao.observeRecentlyLogged(7).first())
+        // Date order is unchanged for everything else.
+        assertEquals(listOf(sep3, nov5), periodDayDao.observeAll().first().sortedBy { it.date })
+        assertEquals(listOf(sep3.date, nov5.date), periodDayDao.observeAll().first().map { it.date })
+    }
+
+    @Test
+    fun recentlyLogged_tiesFallBackToLaterDateFirst_andRespectsLimit() = runBlocking {
+        (1..9).forEach { periodDayDao.upsert(PeriodDay(LocalDate.of(2026, 11, it), FlowLevel.LIGHT)) }
+
+        val recent = periodDayDao.observeRecentlyLogged(7).first()
+
+        assertEquals((9 downTo 3).map { LocalDate.of(2026, 11, it) }, recent.map { it.date })
+    }
+
+    @Test
+    fun repository_updatingDay_movesItToTopOfRecentlyLogged() = runBlocking {
+        var clock = 1_000L
+        val repository = CycleRepository(periodDayDao, dailyLogDao, now = { Instant.ofEpochMilli(clock) })
+        val nov5 = LocalDate.of(2026, 11, 5)
+        val sep3 = LocalDate.of(2026, 9, 3)
+
+        repository.logPeriodDay(sep3, FlowLevel.LIGHT)
+        clock = 2_000L
+        repository.logPeriodDay(nov5, FlowLevel.MEDIUM)
+        clock = 3_000L
+        repository.logPeriodDay(sep3, FlowLevel.HEAVY)
+
+        val recent = repository.observeRecentlyLoggedDays(7).first()
+        assertEquals(listOf(sep3, nov5), recent.map { it.date })
+        assertEquals(3_000L, recent.first().loggedAt)
+
+        repository.removePeriodDay(sep3)
+        assertEquals(listOf(nov5), repository.observeRecentlyLoggedDays(7).first().map { it.date })
     }
 
     @Test

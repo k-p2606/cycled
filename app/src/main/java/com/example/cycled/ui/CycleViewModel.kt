@@ -21,13 +21,19 @@ import kotlinx.coroutines.launch
 
 class CycleViewModel(
     private val repository: CycleRepository,
-    private val today: () -> LocalDate = { LocalDate.now() },
+    /** Today's date. Screens call `viewModel.today()` so tests and previews can supply a fixed date. */
+    val today: () -> LocalDate = { LocalDate.now() },
     private val predictor: CyclePredictor = AverageCyclePredictor(),
 ) : ViewModel() {
 
     /** The individual logged bleeding days, ordered by date, each with its flow level. */
     val periodDays: StateFlow<List<PeriodDay>> =
         repository.observePeriodDays()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The days most recently saved (newest save first), for Log's "Recently logged" list. */
+    val recentlyLoggedDays: StateFlow<List<PeriodDay>> =
+        repository.observeRecentlyLoggedDays(RECENTLY_LOGGED_LIMIT)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Those days grouped into whole periods by groupIntoPeriods(). */
@@ -50,6 +56,9 @@ class CycleViewModel(
     }
 
     companion object {
+        /** How many entries Log's "Recently logged" list shows. */
+        const val RECENTLY_LOGGED_LIMIT = 7
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CycledApplication

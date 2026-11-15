@@ -1,6 +1,7 @@
 package com.example.cycled.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -8,8 +9,12 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [PeriodDay::class, DailyLog::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [
+        // 1 -> 2: adds period_days.loggedAt (existing rows get 0).
+        AutoMigration(from = 1, to = 2),
+    ],
 )
 @TypeConverters(Converters::class)
 abstract class CycledDatabase : RoomDatabase() {

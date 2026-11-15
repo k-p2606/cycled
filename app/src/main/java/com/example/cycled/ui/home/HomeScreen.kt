@@ -2,6 +2,7 @@ package com.example.cycled.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,15 +39,16 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 @Composable
-fun HomeRoute(viewModel: CycleViewModel, onLogClick: () -> Unit) {
+fun HomeRoute(viewModel: CycleViewModel, onLogClick: () -> Unit, onCalendarClick: () -> Unit) {
     val state by viewModel.homeState.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onLogClick = onLogClick)
+    HomeScreen(state = state, onLogClick = onLogClick, onCalendarClick = onCalendarClick)
 }
 
 @Composable
 fun HomeScreen(
     state: HomeUiState,
     onLogClick: () -> Unit,
+    onCalendarClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(modifier = modifier) { innerPadding ->
@@ -75,7 +77,7 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
-                    LogButton(onLogClick)
+                    HomeActions(onLogClick = onLogClick, onCalendarClick = onCalendarClick)
                 }
 
                 is HomeUiState.Ready -> {
@@ -89,7 +91,7 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
-                    LogButton(onLogClick)
+                    HomeActions(onLogClick = onLogClick, onCalendarClick = onCalendarClick)
                 }
             }
         }
@@ -205,9 +207,12 @@ private val Phase.description: String
     }
 
 @Composable
-private fun LogButton(onClick: () -> Unit) {
+private fun HomeActions(onLogClick: () -> Unit, onCalendarClick: () -> Unit) {
     Spacer(Modifier.height(24.dp))
-    Button(onClick = onClick) { Text("Log period") }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(onClick = onLogClick) { Text("Log period") }
+        Button(onClick = onCalendarClick) { Text("Calendar") }
+    }
 }
 
 private fun daysLabel(days: Int): String = if (days == 1) "1 day" else "$days days"
@@ -219,7 +224,7 @@ private val DateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM 
 @Composable
 private fun HomeScreenLoadingPreview() {
     CycledTheme {
-        HomeScreen(state = HomeUiState.Loading, onLogClick = {})
+        HomeScreen(state = HomeUiState.Loading, onLogClick = {}, onCalendarClick = {})
     }
 }
 
@@ -227,7 +232,7 @@ private fun HomeScreenLoadingPreview() {
 @Composable
 private fun HomeScreenNoDataPreview() {
     CycledTheme {
-        HomeScreen(state = HomeUiState.NoData, onLogClick = {})
+        HomeScreen(state = HomeUiState.NoData, onLogClick = {}, onCalendarClick = {})
     }
 }
 
@@ -240,7 +245,7 @@ private fun HomeScreenMidCyclePreview() {
         predictor = AverageCyclePredictor(),
     )
     CycledTheme {
-        HomeScreen(state = state, onLogClick = {})
+        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
     }
 }
 
@@ -253,7 +258,7 @@ private fun HomeScreenOnPeriodPreview() {
         predictor = AverageCyclePredictor(),
     )
     CycledTheme {
-        HomeScreen(state = state, onLogClick = {})
+        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
     }
 }
 
@@ -266,7 +271,7 @@ private fun HomeScreenPlaceholderPredictionPreview() {
         predictor = AverageCyclePredictor(),
     )
     CycledTheme {
-        HomeScreen(state = state, onLogClick = {})
+        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
     }
 }
 
@@ -282,7 +287,7 @@ private fun HomeScreenOwnDataPreview() {
         predictor = AverageCyclePredictor(),
     )
     CycledTheme {
-        HomeScreen(state = state, onLogClick = {})
+        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
     }
 }
 
@@ -295,6 +300,6 @@ private fun HomeScreenLatePreview() {
         predictor = AverageCyclePredictor(),
     )
     CycledTheme {
-        HomeScreen(state = state, onLogClick = {})
+        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
     }
 }
