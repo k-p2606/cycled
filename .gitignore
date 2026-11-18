@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Python / predictions
+resources/**/*.csv
+.venv/
+__pycache__/
+predictions/figures/
