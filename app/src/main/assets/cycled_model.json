@@ -1,0 +1,96 @@
+{
+  "version": 2,
+  "day_convention": "cycle day 1 = first day of the period; ovulation date = start + (ovulation_day - 1); next start = start + cycle_days; range days are offsets from the start",
+  "features": [
+    "n_cycles",
+    "mean_cycle",
+    "last_cycle",
+    "sd_cycle",
+    "mean_period",
+    "last_period"
+  ],
+  "valid_cycle_days": [
+    15,
+    60
+  ],
+  "max_cycles_used": 6,
+  "fallbacks": {
+    "cycle_length": 29.0,
+    "period_length": 5.0,
+    "sd_cycle": 2.2290013357137504
+  },
+  "ovulation_method": "direct",
+  "models": {
+    "cycle_length": {
+      "intercept": 8.281185065527907,
+      "weights": [
+        -0.09111926217722867,
+        0.7658529348518476,
+        -0.05223247601599839,
+        0.19869242611186563,
+        -0.023620423306818614,
+        0.04804803766806611
+      ]
+    },
+    "period_length": {
+      "intercept": 2.141240207164424,
+      "weights": [
+        -0.05160859245975103,
+        -0.0423510709712317,
+        0.023092442705738618,
+        0.04589352739068722,
+        0.5331525417798502,
+        0.1882292536716784
+      ]
+    },
+    "ovulation_day": {
+      "intercept": -3.393558713437759,
+      "weights": [
+        -0.1440527434694805,
+        0.727450187078023,
+        -0.05136770622927882,
+        -0.10581314161647998,
+        -0.025181241593159116,
+        0.14061478410959466
+      ]
+    },
+    "range_low": {
+      "intercept": 10.895434673598245,
+      "weights": [
+        0.07911970504254218,
+        0.5440030398775125,
+        -0.02576388944390996,
+        -0.05898833254218509,
+        0.11480181430640465,
+        -0.0733788071353347
+      ]
+    },
+    "range_high": {
+      "intercept": 4.963737613848625,
+      "weights": [
+        -0.27339509858841937,
+        0.9182160238728848,
+        0.0,
+        0.46941749881421696,
+        0.0,
+        0.07233309239468742
+      ]
+    }
+  },
+  "clamps": {
+    "cycle_days": [
+      15,
+      60
+    ],
+    "period_days": [
+      1,
+      10
+    ],
+    "ovulation_min_days_before_next_start": 2
+  },
+  "range_percentiles": [
+    15,
+    85
+  ],
+  "range_min_half_width_days": 3
+}
