@@ -24,6 +24,7 @@ class CycleViewModel(
     private val repository: CycleRepository,
     /** Today's date. Screens call `viewModel.today()` so tests and previews can supply a fixed date. */
     val today: () -> LocalDate = { LocalDate.now() },
+    /** The app passes CycledApplication.predictor (the ML models); the default is for tests and previews. */
     private val predictor: CyclePredictor = AverageCyclePredictor(),
 ) : ViewModel() {
 
@@ -83,7 +84,7 @@ class CycleViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CycledApplication
-                CycleViewModel(app.repository)
+                CycleViewModel(app.repository, predictor = app.predictor)
             }
         }
     }

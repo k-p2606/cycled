@@ -15,56 +15,67 @@ class AverageCyclePredictorCrossCheckTest {
 
     private data class Case(val name: String, val starts: List<LocalDate>, val expected: Prediction)
 
+    /** Each start as a 5-day period, so the period length is 5 with or without past periods. */
+    private fun periodsFrom(starts: List<LocalDate>) = starts.map { Period(it, it.plusDays(4)) }
+
+    /** Expected prediction with the rule-based period length (5) and ovulation (next start - 14). */
+    private fun expected(nextStart: LocalDate, earliest: LocalDate, latest: LocalDate, basedOnCycles: Int) =
+        Prediction(
+            nextStart, earliest, latest, basedOnCycles,
+            periodLengthDays = CycleDefaults.PERIOD_LENGTH_DAYS,
+            ovulation = nextStart.minusDays(CycleDefaults.DAYS_FROM_OVULATION_TO_NEXT_START.toLong()),
+        )
+
     private val cases = listOf(
         Case(
             "oneStart_placeholder",
             listOf(d(11, 1)),
-            Prediction(d(11, 30), d(11, 27), d(12, 3), basedOnCycles = 0),
+            expected(d(11, 30), d(11, 27), d(12, 3), basedOnCycles = 0),
         ),
         Case(
             "oneLength_plusMinusThree",
             listOf(d(10, 3), d(11, 1)),
-            Prediction(d(11, 30), d(11, 27), d(12, 3), basedOnCycles = 1),
+            expected(d(11, 30), d(11, 27), d(12, 3), basedOnCycles = 1),
         ),
         Case(
             "identicalLengths_clampedToMinimum",
             listOf(d(8, 9), d(9, 6), d(10, 4), d(11, 1)),
-            Prediction(d(11, 29), d(11, 26), d(12, 2), basedOnCycles = 3),
+            expected(d(11, 29), d(11, 26), d(12, 2), basedOnCycles = 3),
         ),
         Case(
             "varyingLengths_sdFour",
             listOf(d(7, 4), d(7, 28), d(8, 29), d(9, 26), d(11, 1)),
-            Prediction(d(12, 1), d(11, 27), d(12, 5), basedOnCycles = 4),
+            expected(d(12, 1), d(11, 27), d(12, 5), basedOnCycles = 4),
         ),
         Case(
             "meanHalf_roundsUp",
             listOf(d(9, 5), d(10, 3), d(11, 1)),
-            Prediction(d(11, 30), d(11, 27), d(12, 3), basedOnCycles = 2),
+            expected(d(11, 30), d(11, 27), d(12, 3), basedOnCycles = 2),
         ),
         Case(
             "sdHalf_roundsUp",
             listOf(d(7, 14), d(8, 7), d(9, 7), d(10, 1), d(11, 1)),
-            Prediction(d(11, 29), d(11, 25), d(12, 3), basedOnCycles = 4),
+            expected(d(11, 29), d(11, 25), d(12, 3), basedOnCycles = 4),
         ),
         Case(
             "tooShortLength_dropped",
             listOf(d(7, 28), d(8, 24), d(9, 3), d(10, 3), d(11, 1)),
-            Prediction(d(11, 30), d(11, 27), d(12, 3), basedOnCycles = 3),
+            expected(d(11, 30), d(11, 27), d(12, 3), basedOnCycles = 3),
         ),
         Case(
             "moreThanSix_lastSixUsed",
             listOf(d(3, 6), d(4, 15), d(5, 7), d(6, 6), d(7, 7), d(8, 5), d(9, 2), d(10, 5), d(11, 1)),
-            Prediction(d(12, 1), d(11, 28), d(12, 4), basedOnCycles = 6),
+            expected(d(12, 1), d(11, 28), d(12, 4), basedOnCycles = 6),
         ),
         Case(
             "veryIrregular_clampedToSeven",
             listOf(d(6, 24), d(7, 14), d(8, 28), d(9, 17), d(11, 1)),
-            Prediction(d(12, 4), d(11, 27), d(12, 11), basedOnCycles = 4),
+            expected(d(12, 4), d(11, 27), d(12, 11), basedOnCycles = 4),
         ),
         Case(
             "unsortedWithDuplicate",
             listOf(d(11, 1), d(9, 6), d(10, 3), d(11, 1)),
-            Prediction(d(11, 29), d(11, 26), d(12, 2), basedOnCycles = 2),
+            expected(d(11, 29), d(11, 26), d(12, 2), basedOnCycles = 2),
         ),
     )
 
@@ -78,7 +89,7 @@ class AverageCyclePredictorCrossCheckTest {
     fun matchesPythonCopy() {
         val predictor = AverageCyclePredictor()
         for (case in cases) {
-            assertEquals(case.name, case.expected, predictor.predict(case.starts))
+            assertEquals(case.name, case.expected, predictor.predict(periodsFrom(case.starts)))
         }
     }
 }

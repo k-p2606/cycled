@@ -1,6 +1,7 @@
 package com.example.cycled.ui
 
 import com.example.cycled.domain.AverageCyclePredictor
+import com.example.cycled.domain.CycleDefaults
 import com.example.cycled.domain.Period
 import com.example.cycled.domain.Phase
 import com.example.cycled.domain.cyclePhases
@@ -18,8 +19,17 @@ class PhaseBarModelTest {
 
     private val nov1to5 = Period(d(11, 1), d(11, 5))
 
+    /** Phases with rule-based ovulation (next start - 14) and period length (5), like AverageCyclePredictor. */
+    private fun rulePhases(lastPeriod: Period, nextStart: LocalDate, today: LocalDate) = cyclePhases(
+        lastPeriod = lastPeriod,
+        nextStart = nextStart,
+        ovulation = nextStart.minusDays(CycleDefaults.DAYS_FROM_OVULATION_TO_NEXT_START.toLong()),
+        periodLengthDays = CycleDefaults.PERIOD_LENGTH_DAYS,
+        today = today,
+    )
+
     // Typical: Nov 1-5, next Nov 29. Menstrual 1-5, follicular 6-13, ovulatory 14-16, luteal 17-28.
-    private fun typical(today: LocalDate) = cyclePhases(nov1to5, nextStart = d(11, 29), today = today)
+    private fun typical(today: LocalDate) = rulePhases(nov1to5, nextStart = d(11, 29), today = today)
 
     private fun model(today: LocalDate) = phaseBarModel(typical(today), today)!!
 
@@ -59,7 +69,7 @@ class PhaseBarModelTest {
     fun shortCycle_zeroLengthFollicular_hasNoFollicularSegment() {
         // 20-day cycle: ovulation Nov 7, ovulatory starts the day after the period ends.
         val today = d(11, 7)
-        val m = phaseBarModel(cyclePhases(nov1to5, nextStart = d(11, 21), today = today), today)!!
+        val m = phaseBarModel(rulePhases(nov1to5, nextStart = d(11, 21), today = today), today)!!
 
         assertFalse(m.segments.any { it.phase == Phase.FOLLICULAR })
         assertEquals(listOf(Phase.MENSTRUAL, Phase.OVULATORY, Phase.LUTEAL), m.segments.map { it.phase })
@@ -71,7 +81,7 @@ class PhaseBarModelTest {
     fun todayOnFirstDayOfCycle() {
         // Today Nov 1 with the period logged through Nov 1 only (may still be going).
         val today = d(11, 1)
-        val m = phaseBarModel(cyclePhases(Period(today, today), d(11, 29), today), today)!!
+        val m = phaseBarModel(rulePhases(Period(today, today), d(11, 29), today), today)!!
 
         assertEquals(1, m.cycleDay)
         assertEquals(Phase.MENSTRUAL, m.currentPhase)

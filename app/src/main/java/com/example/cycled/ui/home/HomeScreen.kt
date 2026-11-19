@@ -147,7 +147,7 @@ private fun NextPeriodCard(state: HomeUiState.Ready) {
     }
 
     val basis = when (prediction.basedOnCycles) {
-        0 -> CycleMessages.PLACEHOLDER_BASIS
+        0 -> CycleMessages.placeholderBasis(state.cycleLengthDays)
         1 -> "Based on your last cycle"
         else -> "Based on your last ${prediction.basedOnCycles} cycles"
     }
