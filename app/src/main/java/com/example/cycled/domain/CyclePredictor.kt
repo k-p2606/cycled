@@ -33,7 +33,8 @@ interface CyclePredictor {
  *   [CycleDefaults.MAX_CYCLES_USED] are kept.
  * - With no usable lengths, [CycleDefaults.CYCLE_LENGTH_DAYS] is used and basedOnCycles is 0.
  * - The range is ±3 days with fewer than 3 lengths, otherwise ± the population
- *   standard deviation of the lengths, rounded and clamped to 2..7 days.
+ *   standard deviation of the lengths, rounded and clamped to
+ *   [CycleDefaults.MIN_RANGE_HALF_WIDTH_DAYS]..7 days.
  */
 class AverageCyclePredictor : CyclePredictor {
 
@@ -56,7 +57,7 @@ class AverageCyclePredictor : CyclePredictor {
         } else {
             val mean = lengths.average()
             val variance = lengths.sumOf { (it - mean) * (it - mean) } / lengths.size
-            sqrt(variance).roundToInt().coerceIn(2, 7)
+            sqrt(variance).roundToInt().coerceIn(CycleDefaults.MIN_RANGE_HALF_WIDTH_DAYS, 7)
         }
 
         val nextStart = starts.last().plusDays(average.toLong())

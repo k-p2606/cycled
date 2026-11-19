@@ -1,6 +1,7 @@
 package com.example.cycled.ui
 
 import com.example.cycled.domain.AverageCyclePredictor
+import com.example.cycled.domain.CycleDefaults
 import com.example.cycled.domain.Period
 import com.example.cycled.domain.Phase
 import com.example.cycled.domain.cyclePhases
@@ -18,7 +19,7 @@ class PhaseBarModelTest {
 
     private val nov1to5 = Period(d(11, 1), d(11, 5))
 
-    // Typical: Nov 1-5, next Nov 29. Menstrual 1-5, follicular 6-13, ovulatory 14-16, luteal 17-28.
+    // Typical: Nov 1-5, next Nov 29. Menstrual 1-5, follicular 6-14, ovulatory 15-17, luteal 18-28.
     private fun typical(today: LocalDate) = cyclePhases(nov1to5, nextStart = d(11, 29), today = today)
 
     private fun model(today: LocalDate) = phaseBarModel(typical(today), today)!!
@@ -57,9 +58,10 @@ class PhaseBarModelTest {
 
     @Test
     fun shortCycle_zeroLengthFollicular_hasNoFollicularSegment() {
-        // 20-day cycle: ovulation Nov 7, ovulatory starts the day after the period ends.
+        // Ovulation Nov 7 (a 19-day cycle with a 13-day luteal phase): ovulatory starts the day after the period ends.
         val today = d(11, 7)
-        val m = phaseBarModel(cyclePhases(nov1to5, nextStart = d(11, 21), today = today), today)!!
+        val nextStart = d(11, 7).plusDays(CycleDefaults.LUTEAL_LENGTH_DAYS.toLong())
+        val m = phaseBarModel(cyclePhases(nov1to5, nextStart = nextStart, today = today), today)!!
 
         assertFalse(m.segments.any { it.phase == Phase.FOLLICULAR })
         assertEquals(listOf(Phase.MENSTRUAL, Phase.OVULATORY, Phase.LUTEAL), m.segments.map { it.phase })

@@ -1,6 +1,7 @@
 package com.example.cycled.ui
 
 import com.example.cycled.domain.AverageCyclePredictor
+import com.example.cycled.domain.CycleDefaults
 import com.example.cycled.domain.Period
 import com.example.cycled.domain.Phase
 import com.example.cycled.domain.PhaseRange
@@ -19,6 +20,9 @@ class HomeStateBuilderTest {
 
     private val nov1to5 = Period(d(11, 1), d(11, 5))
 
+    /** Next start for nov1to5 alone, from the placeholder cycle length (Nov 30). */
+    private val placeholderNextStart = d(11, 1).plusDays(CycleDefaults.CYCLE_LENGTH_DAYS.toLong())
+
     private fun ready(periods: List<Period>, today: LocalDate): HomeUiState.Ready {
         val state = buildHomeState(periods, today, predictor)
         assertTrue("expected Ready but was $state", state is HomeUiState.Ready)
@@ -35,7 +39,7 @@ class HomeStateBuilderTest {
         val state = ready(listOf(nov1to5), d(11, 13))
 
         assertEquals(13, state.status.cycleDay)
-        assertEquals(d(11, 29), state.prediction.nextStart)
+        assertEquals(placeholderNextStart, state.prediction.nextStart)
         assertEquals(0, state.prediction.basedOnCycles)
         assertEquals(Phase.FOLLICULAR, state.currentPhase)
         assertFalse(state.isLate)
@@ -65,7 +69,7 @@ class HomeStateBuilderTest {
 
     @Test
     fun onPredictedStartDay_noPhaseAndNotLate() {
-        val state = ready(listOf(nov1to5), d(11, 29))
+        val state = ready(listOf(nov1to5), placeholderNextStart)
 
         assertNull(state.currentPhase)
         assertFalse(state.isLate)

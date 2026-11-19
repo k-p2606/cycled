@@ -16,7 +16,8 @@ import pandas as pd
 from examples import HISTORY_COLUMNS, MAX_HISTORY
 from load_data import PROCESSED, VALID_MAX, VALID_MIN
 
-PLACEHOLDER_LENGTH = 28   # CycleDefaults.CYCLE_LENGTH_DAYS
+PLACEHOLDER_LENGTH = 28   # CycleDefaults.CYCLE_LENGTH_DAYS as scored in session 10 (29 from session 12)
+MIN_HALF_WIDTH = 2        # SD clamp minimum as scored in session 10 (3 from session 12)
 MAX_CYCLES_USED = 6       # CycleDefaults.MAX_CYCLES_USED
 CLOSE_DAYS = 2            # "close" = |error| <= 2 days
 
@@ -40,13 +41,18 @@ def round_half_up(x: float) -> int:
 #   5. The range is symmetric: earliest = predicted - halfWidth, latest = predicted + halfWidth
 #      (lines 79-80), so earliest_offset == latest_offset == halfWidth.
 #   6. based_on = number of lengths used after steps 1-2 (line 81).
-def average_predict(history: list) -> tuple:
-    """Return (predicted_length, earliest_offset, latest_offset, based_on) for a list of past lengths."""
+def average_predict(history: list, placeholder_length: int = PLACEHOLDER_LENGTH,
+                    min_half_width: int = MIN_HALF_WIDTH) -> tuple:
+    """Return (predicted_length, earliest_offset, latest_offset, based_on) for a list of past lengths.
+
+    The defaults reproduce the app as scored in session 10; pass the newer CycleDefaults to
+    model a later version of the app.
+    """
     lengths = [int(x) for x in history if VALID_MIN <= x <= VALID_MAX]
     lengths = lengths[-MAX_CYCLES_USED:]
 
     if not lengths:
-        predicted = PLACEHOLDER_LENGTH
+        predicted = placeholder_length
     else:
         predicted = round_half_up(sum(lengths) / len(lengths))
 
@@ -55,7 +61,7 @@ def average_predict(history: list) -> tuple:
     else:
         mean = sum(lengths) / len(lengths)
         variance = sum((x - mean) * (x - mean) for x in lengths) / len(lengths)
-        half_width = min(max(round_half_up(math.sqrt(variance)), 2), 7)
+        half_width = min(max(round_half_up(math.sqrt(variance)), min_half_width), 7)
 
     return predicted, half_width, half_width, len(lengths)
 

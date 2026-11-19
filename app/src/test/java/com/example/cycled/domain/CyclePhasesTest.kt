@@ -14,6 +14,8 @@ class CyclePhasesTest {
 
     private fun CyclePhases.range(phase: Phase): PhaseRange? = ranges.firstOrNull { it.phase == phase }
 
+    private val luteal = CycleDefaults.LUTEAL_LENGTH_DAYS.toLong()
+
     @Test
     fun typicalCycle_allFourPhasesAndFertileWindow() {
         val phases = cyclePhases(nov1to5, nextStart = d(11, 29), today = d(11, 13))
@@ -21,15 +23,15 @@ class CyclePhasesTest {
         assertEquals(
             listOf(
                 PhaseRange(Phase.MENSTRUAL, d(11, 1), d(11, 5)),
-                PhaseRange(Phase.FOLLICULAR, d(11, 6), d(11, 13)),
-                PhaseRange(Phase.OVULATORY, d(11, 14), d(11, 16)),
-                PhaseRange(Phase.LUTEAL, d(11, 17), d(11, 28)),
+                PhaseRange(Phase.FOLLICULAR, d(11, 6), d(11, 14)),
+                PhaseRange(Phase.OVULATORY, d(11, 15), d(11, 17)),
+                PhaseRange(Phase.LUTEAL, d(11, 18), d(11, 28)),
             ),
             phases.ranges,
         )
-        assertEquals(d(11, 15), phases.ovulation)
-        assertEquals(d(11, 10), phases.fertileStart)
-        assertEquals(d(11, 16), phases.fertileEnd)
+        assertEquals(d(11, 29).minusDays(luteal), phases.ovulation)   // Nov 16 with a 13-day luteal phase
+        assertEquals(phases.ovulation.minusDays(5), phases.fertileStart)
+        assertEquals(phases.ovulation.plusDays(1), phases.fertileEnd)
     }
 
     @Test
@@ -49,9 +51,9 @@ class CyclePhasesTest {
     fun cycleOneDayLonger_shiftsLaterPhases() {
         val phases = cyclePhases(nov1to5, nextStart = d(11, 30), today = d(11, 13))
 
-        assertEquals(PhaseRange(Phase.FOLLICULAR, d(11, 6), d(11, 14)), phases.range(Phase.FOLLICULAR))
-        assertEquals(PhaseRange(Phase.OVULATORY, d(11, 15), d(11, 17)), phases.range(Phase.OVULATORY))
-        assertEquals(PhaseRange(Phase.LUTEAL, d(11, 18), d(11, 29)), phases.range(Phase.LUTEAL))
+        assertEquals(PhaseRange(Phase.FOLLICULAR, d(11, 6), d(11, 15)), phases.range(Phase.FOLLICULAR))
+        assertEquals(PhaseRange(Phase.OVULATORY, d(11, 16), d(11, 18)), phases.range(Phase.OVULATORY))
+        assertEquals(PhaseRange(Phase.LUTEAL, d(11, 19), d(11, 29)), phases.range(Phase.LUTEAL))
         assertEquals(Phase.FOLLICULAR, phases.phaseOn(d(11, 13)))
     }
 
@@ -79,11 +81,13 @@ class CyclePhasesTest {
 
     @Test
     fun shortCycle_follicularIsOneDay() {
-        val phases = cyclePhases(nov1to5, nextStart = d(11, 22), today = d(11, 13))
+        // Ovulation Nov 8, so the ovulatory phase starts Nov 7 and only Nov 6 is follicular.
+        val nextStart = d(11, 8).plusDays(luteal)
+        val phases = cyclePhases(nov1to5, nextStart = nextStart, today = d(11, 13))
 
         assertEquals(PhaseRange(Phase.FOLLICULAR, d(11, 6), d(11, 6)), phases.range(Phase.FOLLICULAR))
         assertEquals(PhaseRange(Phase.OVULATORY, d(11, 7), d(11, 9)), phases.range(Phase.OVULATORY))
-        assertEquals(PhaseRange(Phase.LUTEAL, d(11, 10), d(11, 21)), phases.range(Phase.LUTEAL))
+        assertEquals(PhaseRange(Phase.LUTEAL, d(11, 10), nextStart.minusDays(1)), phases.range(Phase.LUTEAL))
     }
 
     @Test
