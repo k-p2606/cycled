@@ -18,7 +18,7 @@ data class CyclePhases(
  * into menstrual, follicular, ovulatory and luteal phases.
  *
  * These phases are estimates calculated from dates, not measured. Ovulation is
- * assumed to be [lutealLengthDays] before the next period. While the period may
+ * assumed to be [daysFromOvulationToNextStart] before the next period. While the period may
  * still be going (it was last logged today or yesterday), the menstrual phase lasts
  * at least [periodLengthDays]; otherwise it uses the logged end date.
  */
@@ -27,7 +27,7 @@ fun cyclePhases(
     nextStart: LocalDate,
     today: LocalDate,
     periodLengthDays: Int = CycleDefaults.PERIOD_LENGTH_DAYS,
-    lutealLengthDays: Int = CycleDefaults.LUTEAL_LENGTH_DAYS,
+    daysFromOvulationToNextStart: Int = CycleDefaults.DAYS_FROM_OVULATION_TO_NEXT_START,
 ): CyclePhases {
     val cycleEnd = nextStart.minusDays(1)
 
@@ -40,7 +40,7 @@ fun cyclePhases(
     }.let { earlier(it, cycleEnd) }
 
     // b) Ovulation
-    val ovulation = nextStart.minusDays(lutealLengthDays.toLong())
+    val ovulation = nextStart.minusDays(daysFromOvulationToNextStart.toLong())
 
     // c) Ovulatory
     val ovStart = later(ovulation.minusDays(1), menstrualEnd.plusDays(1))

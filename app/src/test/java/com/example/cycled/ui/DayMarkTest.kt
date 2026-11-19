@@ -2,6 +2,7 @@ package com.example.cycled.ui
 
 import com.example.cycled.data.FlowLevel
 import com.example.cycled.domain.AverageCyclePredictor
+import com.example.cycled.domain.CycleDefaults
 import com.example.cycled.domain.Phase
 import com.example.cycled.domain.groupIntoPeriods
 import com.example.cycled.domain.phaseOn
@@ -32,6 +33,9 @@ class DayMarkTest {
     private val calendar = state(twoPeriods, d(11, 13))
 
     private fun mark(date: LocalDate) = calendar.markOn(date)
+
+    /** Next start for Nov 1-5 alone, from the placeholder cycle length (Nov 30). */
+    private val placeholderNextStart = d(11, 1).plusDays(CycleDefaults.CYCLE_LENGTH_DAYS.toLong())
 
     private fun assertNoForecastMarks(m: DayMark) {
         assertNull(m.phase)
@@ -118,8 +122,8 @@ class DayMarkTest {
         assertTrue(s.isPlaceholderForecast)
         assertEquals(Phase.MENSTRUAL, s.markOn(d(11, 2)).phase)
         assertEquals(Phase.FOLLICULAR, s.markOn(d(11, 13)).phase)
-        assertEquals(Phase.LUTEAL, s.markOn(d(11, 28)).phase)
-        assertTrue(s.markOn(d(11, 29)).isPredictedPeriod)
+        assertEquals(Phase.LUTEAL, s.markOn(placeholderNextStart.minusDays(1)).phase)
+        assertTrue(s.markOn(placeholderNextStart).isPredictedPeriod)
     }
 
     @Test
@@ -144,7 +148,7 @@ class DayMarkTest {
 
     @Test
     fun todayWhenLate_noPhase() {
-        val today = d(12, 2)   // predicted start was Nov 29
+        val today = d(12, 2)   // predicted start was Nov 30
         val s = state(days(d(11, 1), d(11, 5)), today)
 
         assertTrue(s.forecast!!.isLate)
@@ -156,21 +160,23 @@ class DayMarkTest {
 
     @Test
     fun late_predictedDaysBeforeTodayNotMarked_todayAndLaterStillMarked() {
-        // Nov 1-5 only: predicted Nov 29 - Dec 3. Today Dec 1, so late.
-        val today = d(12, 1)
+        // Nov 1-5 only: predicted Nov 30 - Dec 4 (5 days). Today is two days after the start, so late.
+        val start = placeholderNextStart
+        val lastDay = start.plusDays(CycleDefaults.PERIOD_LENGTH_DAYS - 1L)
+        val today = start.plusDays(2)
         val s = state(days(d(11, 1), d(11, 5)), today)
         assertTrue(s.forecast!!.isLate)
 
-        assertFalse("Nov 29", s.markOn(d(11, 29)).isPredictedPeriod)
-        assertFalse("yesterday", s.markOn(d(11, 30)).isPredictedPeriod)
+        assertFalse("predicted start", s.markOn(start).isPredictedPeriod)
+        assertFalse("yesterday", s.markOn(today.minusDays(1)).isPredictedPeriod)
         assertTrue("today", s.markOn(today).isPredictedPeriod)
-        assertTrue("Dec 3", s.markOn(d(12, 3)).isPredictedPeriod)
-        assertFalse("Dec 4", s.markOn(d(12, 4)).isPredictedPeriod)
+        assertTrue("last predicted day", s.markOn(lastDay).isPredictedPeriod)
+        assertFalse("day after", s.markOn(lastDay.plusDays(1)).isPredictedPeriod)
     }
 
     @Test
     fun onPredictedStartDay_notLate_startDayStillMarked() {
-        val today = d(11, 29)
+        val today = placeholderNextStart
         val s = state(days(d(11, 1), d(11, 5)), today)
 
         assertFalse(s.forecast!!.isLate)

@@ -13,6 +13,11 @@ class AverageCyclePredictorTest {
 
     private val predictor = AverageCyclePredictor()
 
+    /** Prediction from a last start of Nov 1 with the placeholder length and the ±3 range. */
+    private val placeholder = d(11, 1).plusDays(CycleDefaults.CYCLE_LENGTH_DAYS.toLong()).let {
+        Prediction(it, it.minusDays(3), it.plusDays(3), basedOnCycles = 0)
+    }
+
     /**
      * Start dates ending on Nov 1, 2026, built by counting backwards through
      * [lengths] (given oldest first).
@@ -34,7 +39,8 @@ class AverageCyclePredictorTest {
     fun oneStart_usesPlaceholderLength() {
         val prediction = predictor.predict(listOf(d(11, 1)))
 
-        assertEquals(Prediction(d(11, 29), d(11, 26), d(12, 2), basedOnCycles = 0), prediction)
+        assertEquals(d(11, 30), placeholder.nextStart)
+        assertEquals(placeholder, prediction)
     }
 
     @Test
@@ -53,10 +59,14 @@ class AverageCyclePredictorTest {
     }
 
     @Test
-    fun identicalLengths_rangeClampedToMinimumOfTwo() {
+    fun identicalLengths_rangeClampedToMinimum() {
         val prediction = predictor.predict(startsFromLengths(28, 28, 28))
 
-        assertEquals(Prediction(d(11, 29), d(11, 27), d(12, 1), basedOnCycles = 3), prediction)
+        val min = CycleDefaults.MIN_RANGE_HALF_WIDTH_DAYS.toLong()
+        assertEquals(
+            Prediction(d(11, 29), d(11, 29).minusDays(min), d(11, 29).plusDays(min), basedOnCycles = 3),
+            prediction,
+        )
     }
 
     @Test
@@ -77,14 +87,18 @@ class AverageCyclePredictorTest {
     fun onlyOutlierLength_fallsBackToPlaceholder() {
         val prediction = predictor.predict(startsFromLengths(90))
 
-        assertEquals(Prediction(d(11, 29), d(11, 26), d(12, 2), basedOnCycles = 0), prediction)
+        assertEquals(placeholder, prediction)
     }
 
     @Test
     fun manyCycles_onlyMostRecentSixUsed() {
         val prediction = predictor.predict(startsFromLengths(40, 40, 28, 28, 28, 28, 28, 28))
 
-        assertEquals(Prediction(d(11, 29), d(11, 27), d(12, 1), basedOnCycles = 6), prediction)
+        val min = CycleDefaults.MIN_RANGE_HALF_WIDTH_DAYS.toLong()
+        assertEquals(
+            Prediction(d(11, 29), d(11, 29).minusDays(min), d(11, 29).plusDays(min), basedOnCycles = 6),
+            prediction,
+        )
     }
 
     @Test

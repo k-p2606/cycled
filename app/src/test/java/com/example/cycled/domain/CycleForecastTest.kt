@@ -46,9 +46,10 @@ class CycleForecastTest {
 
     @Test
     fun isLate_onlyAfterPredictedStart() {
-        val periods = listOf(Period(d(11, 1), d(11, 5)))   // next start Nov 29
+        val periods = listOf(Period(d(11, 1), d(11, 5)))
+        val nextStart = d(11, 1).plusDays(CycleDefaults.CYCLE_LENGTH_DAYS.toLong())   // placeholder: Nov 30
 
-        assertFalse(cycleForecast(periods, d(11, 29), predictor)!!.isLate)
-        assertTrue(cycleForecast(periods, d(11, 30), predictor)!!.isLate)
+        assertFalse(cycleForecast(periods, nextStart, predictor)!!.isLate)
+        assertTrue(cycleForecast(periods, nextStart.plusDays(1), predictor)!!.isLate)
     }
 }
