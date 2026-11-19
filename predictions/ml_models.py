@@ -29,28 +29,38 @@ from ml_inference import compute_features, predict, round_half_up
 MODEL_JSON = ROOT / "app" / "src" / "main" / "assets" / "cycled_model.json"
 CASES_JSON = ROOT / "app" / "src" / "test" / "resources" / "ml_cases.json"
 RESULTS_JSON = PROCESSED / "ml_results.json"
-MODEL_VERSION = 1
+MODEL_VERSION = 2   # 2: range percentiles retested (session 11b follow-up)
 
 FEATURES = ["n_cycles", "mean_cycle", "last_cycle", "sd_cycle", "mean_period", "last_period"]
 
 # The app's rules (CycleDefaults after session 12).
 RULE_CYCLE_DAYS = 29
 RULE_PERIOD_DAYS = 5
-RULE_LUTEAL_DAYS = 13        # app: ovulation date = next start - 13
+# App after the session 12 fix: ovulation date = next start - 14 (Marquette median luteal 13 + 1).
+RULE_DAYS_FROM_OVULATION_TO_NEXT_START = 14
 RULE_MIN_HALF_WIDTH = 3
 
 N_FOLDS = 5
 RIDGE_ALPHAS = np.logspace(-3, 3, 13)
 QUANTILE_ALPHAS = [0.0, 1e-4, 1e-3, 1e-2, 1e-1]
-QUANTILES = {"range_low": 0.1, "range_high": 0.9}
+# Range percentile pairs (low, high) on cycle_length; each quantile gets its own tuned alpha.
+PERCENTILE_PAIRS = {"10_90": (0.10, 0.90), "15_85": (0.15, 0.85), "20_80": (0.20, 0.80)}
+QUANTILES = sorted({q for pair in PERCENTILE_PAIRS.values() for q in pair})
+# Versions scored: (percentile pair, ± minimum around the point prediction).
+RANGE_VERSIONS = {
+    "q10_90_raw": ("10_90", 0),
+    "q10_90_min3": ("10_90", 3),
+    "q15_85_min3": ("15_85", 3),
+    "q20_80_min3": ("20_80", 3),
+}
 
 # Ovulation/luteal models train only on rows with a plausible luteal phase (as in session 11's
 # luteal default); every test row with an ovulation day is still scored.
 LUTEAL_TRAIN_RANGE = (7, 20)
 CLAMPS = {"cycle_days": [VALID_MIN, VALID_MAX], "period_days": [1, 10], "ovulation_min_days_before_next_start": 2}
-RANGE_MIN_HALF_WIDTH = 3
 SHIP_MARGIN_DAYS = 0.05
-COVERAGE_TARGET = (80.0, 85.0)
+COVERAGE_TARGET = 85.0      # pick the version closest to this ...
+MIN_BUCKET_COVERAGE = 80.0  # ... with no n_cycles bucket below this
 
 BUCKETS = [("0", [0]), ("1", [1]), ("2", [2]), ("3-5", [3, 4, 5]), ("6", [6])]
 
@@ -107,8 +117,8 @@ def build_rows(cycles: pd.DataFrame, split: pd.DataFrame, skeleton: dict) -> pd.
                 "luteal_gap": None if ovulation is None else c.cycle_length - ovulation,
                 "rule_cycle": rule_cycle,
                 "rule_period": round_half_up(sum(periods) / len(periods)) if periods else RULE_PERIOD_DAYS,
-                # App: ovulation date = next start - 13 = start + rule_cycle - 13 = cycle day rule_cycle - 12.
-                "rule_ovulation": rule_cycle + 1 - RULE_LUTEAL_DAYS,
+                # App: ovulation date = next start - 14 = start + rule_cycle - 14 = cycle day rule_cycle - 13.
+                "rule_ovulation": rule_cycle + 1 - RULE_DAYS_FROM_OVULATION_TO_NEXT_START,
                 "rule_low": rule_cycle - rule_half,
                 "rule_high": rule_cycle + rule_half,
             })
@@ -143,6 +153,10 @@ def raw_space(pipeline) -> dict:
     weights = model.coef_ / scaler.scale_
     intercept = float(model.intercept_ - np.sum(weights * scaler.mean_))
     return {"intercept": intercept, "weights": [float(w) for w in weights]}
+
+
+def quantile_name(q: float) -> str:
+    return f"q{round(q * 100):02d}"
 
 
 def pinball(y, pred, q):
@@ -192,7 +206,8 @@ def tune(train: pd.DataFrame) -> dict:
 
     out["ovulation_via_luteal"] = ridge_cv("luteal_gap", ov_fit, has_ov, via_luteal)
 
-    for name, q in QUANTILES.items():
+    for q in QUANTILES:
+        name = quantile_name(q)
         curve = {}
         for alpha in QUANTILE_ALPHAS:
             losses = []
@@ -302,7 +317,7 @@ def main() -> None:
     print("\nCV (train people, 5-fold GroupKFold):")
     for name in ["cycle_length", "period_length", "ovulation_direct", "ovulation_via_luteal"]:
         print(f"  {name:22} alpha={tuned[name]['alpha']:<8g} CV MAE {tuned[name]['cv_mae_days']:.4f}")
-    for name in QUANTILES:
+    for name in map(quantile_name, QUANTILES):
         print(f"  {name:22} alpha={tuned[name]['alpha']:<8g} CV pinball {tuned[name]['cv_pinball']:.4f}")
     print(f"ovulation method: {ovulation_method}")
 
@@ -317,10 +332,16 @@ def main() -> None:
         pipes["luteal_length"] = fit(lambda: ridge(tuned["ovulation_via_luteal"]["alpha"]), ov_rows, "luteal_gap")
     else:
         pipes["ovulation_day"] = fit(lambda: ridge(tuned["ovulation_direct"]["alpha"]), ov_rows, "ovulation_day")
-    for name, q in QUANTILES.items():
+    for q in QUANTILES:
+        name = quantile_name(q)
         pipes[name] = fit(lambda: quantile(q, tuned[name]["alpha"]), train, "cycle_length")
+    point_models = [k for k in pipes if not k.startswith("q")]
 
-    def export(min_half_width: int) -> dict:
+    def export(pair: str, min_half_width: int) -> dict:
+        low_q, high_q = PERCENTILE_PAIRS[pair]
+        models = {name: raw_space(pipes[name]) for name in point_models}
+        models["range_low"] = raw_space(pipes[quantile_name(low_q)])
+        models["range_high"] = raw_space(pipes[quantile_name(high_q)])
         return {
             "version": MODEL_VERSION,
             "day_convention": "cycle day 1 = first day of the period; ovulation date = start + (ovulation_day - 1); "
@@ -330,34 +351,38 @@ def main() -> None:
             "max_cycles_used": MAX_HISTORY,
             "fallbacks": fallbacks,
             "ovulation_method": ovulation_method,
-            "models": {name: raw_space(p) for name, p in pipes.items()},
+            "models": models,
             "clamps": CLAMPS,
+            "range_percentiles": [round(low_q * 100), round(high_q * 100)],
             "range_min_half_width_days": min_half_width,
         }
 
-    variants = {"quantile_raw": export(0), "quantile_min3": export(RANGE_MIN_HALF_WIDTH)}
+    variants = {name: export(pair, half) for name, (pair, half) in RANGE_VERSIONS.items()}
 
     # ---- inference check: JSON-only inference reproduces sklearn on every row ----
     x_all = rows[FEATURES].to_numpy()
     feats = rows[FEATURES].to_dict("records")
     outputs = {v: [predict(f, m) for f in feats] for v, m in variants.items()}
-    ref = outputs["quantile_min3"]
-    sk_name = {"cycle_raw": "cycle_length", "period_raw": "period_length",
-               "range_low_raw": "range_low", "range_high_raw": "range_high"}
-    if ovulation_method == "luteal":
-        sk_name["luteal_raw"] = "luteal_length"
-    else:
-        sk_name["ovulation_raw"] = "ovulation_day"
-    max_diff = {k: float(np.max(np.abs(np.array([o[k] for o in ref]) - pipes[p].predict(x_all))))
-                for k, p in sk_name.items()}
-    print("\nJSON inference vs sklearn, max |difference| over all rows:", max_diff)
-    assert max(max_diff.values()) < 1e-9, "exported inference does not reproduce sklearn"
+    max_diff = {}
+    for v, (pair, _) in RANGE_VERSIONS.items():
+        low_q, high_q = PERCENTILE_PAIRS[pair]
+        sk_name = {"cycle_raw": "cycle_length", "period_raw": "period_length",
+                   "range_low_raw": quantile_name(low_q), "range_high_raw": quantile_name(high_q)}
+        if ovulation_method == "luteal":
+            sk_name["luteal_raw"] = "luteal_length"
+        else:
+            sk_name["ovulation_raw"] = "ovulation_day"
+        max_diff[v] = {k: float(np.max(np.abs(np.array([o[k] for o in outputs[v]]) - pipes[p].predict(x_all))))
+                       for k, p in sk_name.items()}
+    worst = max(d for per in max_diff.values() for d in per.values())
+    print(f"\nJSON inference vs sklearn, max |difference| over all rows and versions: {worst:.2e}")
+    assert worst < 1e-9, "exported inference does not reproduce sklearn"
 
     # ---- score once on the test people ----
     is_test = (rows["split"] == "test").to_numpy()
     out_test = {v: [o for o, t in zip(outs, is_test) if t] for v, outs in outputs.items()}
     n_c = test["n_cycles"].to_numpy()
-    m3 = out_test["quantile_min3"]
+    m3 = out_test["q10_90_min3"]   # point predictions are the same in every version
     p_mask = test["period_length"].notna().to_numpy()
     o_mask = test["ovulation_day"].notna().to_numpy()
 
@@ -375,9 +400,8 @@ def main() -> None:
             "model": error_metrics(np.array([o["ovulation_day"] for o in m3])[o_mask],
                                    test["ovulation_day"][o_mask], n_c[o_mask]),
             "rule": error_metrics(test["rule_ovulation"][o_mask], test["ovulation_day"][o_mask], n_c[o_mask]),
-            # For reference only: the rule with next start - 14, i.e. Marquette's median luteal of 13 days
-            # counted in the app's convention.
-            "rule_next_start_minus_14": error_metrics(test["rule_ovulation"][o_mask] - 1,
+            # For reference only: session 12's value before the fix (next start - 13), one day later.
+            "rule_next_start_minus_13": error_metrics(test["rule_ovulation"][o_mask] + 1,
                                                       test["ovulation_day"][o_mask], n_c[o_mask]),
         },
     }
@@ -391,8 +415,8 @@ def main() -> None:
     print(f"\n=== TEST people: {test['person_id'].nunique()} people ===")
     for name, r in results.items():
         print_comparison(name, r["model"], r["rule"])
-    r14 = results["ovulation_day"]["rule_next_start_minus_14"]
-    print(f"  (reference: rule with next start - 14: MAE {r14['mae_days']:.2f}, bias {r14['bias_days']:.2f})")
+    r13 = results["ovulation_day"]["rule_next_start_minus_13"]
+    print(f"  (reference: old rule next start - 13: MAE {r13['mae_days']:.2f}, bias {r13['bias_days']:.2f})")
 
     print("\n--- range (cycle length) ---")
     print(f"{'':16}{'coverage':>10}{'width':>8}   by n_cycles (coverage / width)")
@@ -407,15 +431,45 @@ def main() -> None:
         model_mae, rule_mae = r["model"]["mae_days"], r["rule"]["mae_days"]
         ships[name] = {"ships": model_mae <= rule_mae + SHIP_MARGIN_DAYS,
                        "model_mae": model_mae, "rule_mae": rule_mae, "margin": SHIP_MARGIN_DAYS}
-    in_target = [v for v in variants if COVERAGE_TARGET[0] <= ranges[v]["coverage_pct"] <= COVERAGE_TARGET[1]]
-    candidates = in_target or [v for v in variants if ranges[v]["coverage_pct"] >= COVERAGE_TARGET[0]] or list(variants)
-    range_choice = min(candidates, key=lambda v: (ranges[v]["mean_width_days"], -ranges[v]["coverage_pct"]))
+    # Range: closest overall coverage to 85% with no n_cycles bucket below 80%.
+    def min_bucket(v):
+        return min(b["coverage_pct"] for b in ranges[v]["by_n_cycles"] if b["count"])
+
+    qualifying = [v for v in variants if min_bucket(v) >= MIN_BUCKET_COVERAGE]
+    if qualifying:
+        pool = qualifying
+    else:
+        # Fallback: keep the bucket floor first - the highest lowest-bucket coverage, then closest to 85%.
+        best_floor = max(min_bucket(v) for v in variants)
+        pool = [v for v in variants if min_bucket(v) == best_floor]
+    range_choice = min(pool, key=lambda v: (abs(ranges[v]["coverage_pct"] - COVERAGE_TARGET),
+                                            ranges[v]["mean_width_days"]))
+    rule_r = ranges["rule"]
+    beats_rule = {v: ranges[v]["coverage_pct"] >= rule_r["coverage_pct"]
+                  and ranges[v]["mean_width_days"] <= rule_r["mean_width_days"] for v in variants}
+    range_decision = {
+        "rule": f"closest overall coverage to {COVERAGE_TARGET:g}% with no n_cycles bucket below "
+                f"{MIN_BUCKET_COVERAGE:g}%",
+        "min_bucket_coverage_pct": {v: min_bucket(v) for v in list(variants) + ["rule"]},
+        "qualifying": qualifying,
+        "choice": range_choice,
+        "fallback_used": not qualifying,
+        "fallback": "if none qualifies: highest lowest-bucket coverage, then closest to 85% overall",
+        "dominates_rule": beats_rule,
+        "note": "dominates_rule = coverage >= the rule's and mean width <= the rule's",
+    }
     print("\nShip (model MAE not worse than the rule by more than "
           f"{SHIP_MARGIN_DAYS} days):")
     for name, s in ships.items():
         print(f"  {name:14} {'SHIP' if s['ships'] else 'no'}  (model {s['model_mae']:.3f} vs rule {s['rule_mae']:.3f})")
-    print(f"  range: recommend {range_choice} "
-          f"({ranges[range_choice]['coverage_pct']:.1f}% coverage, width {ranges[range_choice]['mean_width_days']:.2f})")
+    print("  range: lowest bucket coverage: " + ", ".join(
+        f"{v} {range_decision['min_bucket_coverage_pct'][v]:.1f}%" for v in range_decision["min_bucket_coverage_pct"]))
+    print(f"  range: qualifying (no bucket < {MIN_BUCKET_COVERAGE:g}%): {qualifying or 'none'}")
+    print(f"  range: choose {range_choice} ({ranges[range_choice]['coverage_pct']:.1f}% coverage, "
+          f"width {ranges[range_choice]['mean_width_days']:.2f})"
+          + ("" if qualifying else " - fallback: none qualified; highest lowest-bucket coverage, then closest to 85%"))
+    print("  range: beats the rule (coverage >= and width <=): "
+          + ", ".join(f"{v} {'yes' if b else 'no'}" for v, b in beats_rule.items()))
 
     # ---- export ----
     model_json = variants[range_choice]
@@ -441,7 +495,7 @@ def main() -> None:
             "population_fallbacks": fallbacks,
             "day_convention": model_json["day_convention"],
             "rules": {"cycle_default": RULE_CYCLE_DAYS, "period_default": RULE_PERIOD_DAYS,
-                      "ovulation": "next start - 13 (cycle day rule_cycle - 12)",
+                      "ovulation": "next start - 14 (cycle day rule_cycle - 13)",
                       "range": "±3 under 3 cycles, else population SD clamped 3-7"},
             "data_notes": data_notes,
             "tuning": tuned,
@@ -450,7 +504,9 @@ def main() -> None:
             "test_metrics": results,
             "test_range": ranges,
             "ships": ships,
-            "range_choice": range_choice,
+            "range_versions": {v: {"percentiles": list(PERCENTILE_PAIRS[p]), "min_half_width_days": h}
+                               for v, (p, h) in RANGE_VERSIONS.items()},
+            "range_decision": range_decision,
             "exported_model": model_json,
         }, f, indent=2)
     print("saved", RESULTS_JSON)

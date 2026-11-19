@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "day_convention": "cycle day 1 = first day of the period; ovulation date = start + (ovulation_day - 1); next start = start + cycle_days; range days are offsets from the start",
   "features": [
     "n_cycles",
@@ -55,25 +55,25 @@
       ]
     },
     "range_low": {
-      "intercept": 13.66197183098589,
+      "intercept": 10.895434673598245,
       "weights": [
-        0.0,
-        0.4225352112676066,
-        0.0,
-        0.0,
-        0.0,
-        0.0
+        0.07911970504254218,
+        0.5440030398775125,
+        -0.02576388944390996,
+        -0.05898833254218509,
+        0.11480181430640465,
+        -0.0733788071353347
       ]
     },
     "range_high": {
-      "intercept": 4.430956068246637,
+      "intercept": 4.963737613848625,
       "weights": [
-        -0.258744430532752,
-        0.9673761711721022,
+        -0.27339509858841937,
+        0.9182160238728848,
         0.0,
-        0.6865349314693051,
+        0.46941749881421696,
         0.0,
-        0.0
+        0.07233309239468742
       ]
     }
   },
@@ -88,5 +88,9 @@
     ],
     "ovulation_min_days_before_next_start": 2
   },
-  "range_min_half_width_days": 0
+  "range_percentiles": [
+    15,
+    85
+  ],
+  "range_min_half_width_days": 3
 }
