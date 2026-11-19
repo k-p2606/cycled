@@ -12,11 +12,20 @@ class CyclePhasesTest {
 
     private val nov1to5 = Period(d(11, 1), d(11, 5))
 
+    /** Phases with rule-based ovulation (next start - 14) and period length (5), like AverageCyclePredictor. */
+    private fun rulePhases(lastPeriod: Period, nextStart: LocalDate, today: LocalDate) = cyclePhases(
+        lastPeriod = lastPeriod,
+        nextStart = nextStart,
+        ovulation = nextStart.minusDays(CycleDefaults.DAYS_FROM_OVULATION_TO_NEXT_START.toLong()),
+        periodLengthDays = CycleDefaults.PERIOD_LENGTH_DAYS,
+        today = today,
+    )
+
     private fun CyclePhases.range(phase: Phase): PhaseRange? = ranges.firstOrNull { it.phase == phase }
 
     @Test
     fun typicalCycle_allFourPhasesAndFertileWindow() {
-        val phases = cyclePhases(nov1to5, nextStart = d(11, 29), today = d(11, 13))
+        val phases = rulePhases(nov1to5, nextStart = d(11, 29), today = d(11, 13))
 
         assertEquals(
             listOf(
@@ -34,7 +43,7 @@ class CyclePhasesTest {
 
     @Test
     fun typicalCycle_phaseOn() {
-        val phases = cyclePhases(nov1to5, nextStart = d(11, 29), today = d(11, 13))
+        val phases = rulePhases(nov1to5, nextStart = d(11, 29), today = d(11, 13))
 
         assertNull(phases.phaseOn(d(10, 31)))
         assertEquals(Phase.MENSTRUAL, phases.phaseOn(d(11, 3)))
@@ -47,7 +56,7 @@ class CyclePhasesTest {
 
     @Test
     fun cycleOneDayLonger_shiftsLaterPhases() {
-        val phases = cyclePhases(nov1to5, nextStart = d(11, 30), today = d(11, 13))
+        val phases = rulePhases(nov1to5, nextStart = d(11, 30), today = d(11, 13))
 
         assertEquals(PhaseRange(Phase.FOLLICULAR, d(11, 6), d(11, 14)), phases.range(Phase.FOLLICULAR))
         assertEquals(PhaseRange(Phase.OVULATORY, d(11, 15), d(11, 17)), phases.range(Phase.OVULATORY))
@@ -57,14 +66,14 @@ class CyclePhasesTest {
 
     @Test
     fun ongoingPeriod_menstrualUsesDefaultLength() {
-        val phases = cyclePhases(Period(d(11, 13), d(11, 13)), nextStart = d(12, 11), today = d(11, 13))
+        val phases = rulePhases(Period(d(11, 13), d(11, 13)), nextStart = d(12, 11), today = d(11, 13))
 
         assertEquals(PhaseRange(Phase.MENSTRUAL, d(11, 13), d(11, 17)), phases.range(Phase.MENSTRUAL))
     }
 
     @Test
     fun finishedShortPeriod_menstrualUsesLoggedEnd() {
-        val phases = cyclePhases(Period(d(11, 1), d(11, 3)), nextStart = d(11, 29), today = d(11, 13))
+        val phases = rulePhases(Period(d(11, 1), d(11, 3)), nextStart = d(11, 29), today = d(11, 13))
 
         assertEquals(PhaseRange(Phase.MENSTRUAL, d(11, 1), d(11, 3)), phases.range(Phase.MENSTRUAL))
         assertEquals(d(11, 4), phases.range(Phase.FOLLICULAR)!!.start)
@@ -72,14 +81,14 @@ class CyclePhasesTest {
 
     @Test
     fun longLoggedPeriod_menstrualUsesLoggedEnd() {
-        val phases = cyclePhases(Period(d(11, 1), d(11, 7)), nextStart = d(11, 29), today = d(11, 13))
+        val phases = rulePhases(Period(d(11, 1), d(11, 7)), nextStart = d(11, 29), today = d(11, 13))
 
         assertEquals(PhaseRange(Phase.MENSTRUAL, d(11, 1), d(11, 7)), phases.range(Phase.MENSTRUAL))
     }
 
     @Test
     fun shortCycle_follicularIsOneDay() {
-        val phases = cyclePhases(nov1to5, nextStart = d(11, 22), today = d(11, 13))
+        val phases = rulePhases(nov1to5, nextStart = d(11, 22), today = d(11, 13))
 
         assertEquals(PhaseRange(Phase.FOLLICULAR, d(11, 6), d(11, 6)), phases.range(Phase.FOLLICULAR))
         assertEquals(PhaseRange(Phase.OVULATORY, d(11, 7), d(11, 9)), phases.range(Phase.OVULATORY))
@@ -88,7 +97,7 @@ class CyclePhasesTest {
 
     @Test
     fun veryShortCycle_noFollicularPhase() {
-        val phases = cyclePhases(nov1to5, nextStart = d(11, 16), today = d(11, 13))
+        val phases = rulePhases(nov1to5, nextStart = d(11, 16), today = d(11, 13))
 
         assertNull(phases.range(Phase.FOLLICULAR))
         assertEquals(PhaseRange(Phase.OVULATORY, d(11, 6), d(11, 6)), phases.range(Phase.OVULATORY))
@@ -99,7 +108,7 @@ class CyclePhasesTest {
     fun everyCycleLength_rangesCoverCycleInOrderWithoutGapsOrOverlaps() {
         for (length in 15..60) {
             val nextStart = d(11, 1).plusDays(length.toLong())
-            val ranges = cyclePhases(nov1to5, nextStart = nextStart, today = d(11, 13)).ranges
+            val ranges = rulePhases(nov1to5, nextStart = nextStart, today = d(11, 13)).ranges
 
             assertEquals("length $length: first start", d(11, 1), ranges.first().start)
             assertEquals("length $length: last end", nextStart.minusDays(1), ranges.last().end)

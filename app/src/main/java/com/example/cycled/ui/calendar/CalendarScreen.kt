@@ -319,7 +319,7 @@ private fun Legend(state: CalendarUiState, modifier: Modifier = Modifier) {
             }
             LegendNote("The fertile window can overlap other phases.")
             if (state.isPlaceholderForecast) {
-                LegendNote(CycleMessages.PLACEHOLDER_NOTE)
+                LegendNote(CycleMessages.placeholderNote(forecast.cycleLengthDays))
             }
             if (forecast.isLate) {
                 LegendNote("${CycleMessages.PERIOD_MAY_BE_LATE}.", color = colors.onSurface)
