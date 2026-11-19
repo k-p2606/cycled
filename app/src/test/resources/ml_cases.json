@@ -1,0 +1,685 @@
+{
+  "model_version": 1,
+  "note": "history = earlier completed cycles, oldest first: [cycle_length, period_length or null]. Expected values come from predictions/ml_inference.py with cycled_model.json.",
+  "cases": [
+    {
+      "name": "no_history",
+      "history": [],
+      "features": {
+        "n_cycles": 0.0,
+        "mean_cycle": 29.0,
+        "last_cycle": 29.0,
+        "sd_cycle": 2.2290013357137504,
+        "mean_period": 5.0,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 29.541202126773324,
+        "period_raw": 5.291945698577225,
+        "luteal_raw": null,
+        "ovulation_raw": 16.554143309758796,
+        "range_low_raw": 25.91549295774648,
+        "range_high_raw": 34.015152311496834,
+        "cycle_days": 30,
+        "period_days": 5,
+        "ovulation_day": 17,
+        "range_low_days": 26,
+        "range_high_days": 34
+      }
+    },
+    {
+      "name": "one_cycle",
+      "history": [
+        [
+          28,
+          5
+        ]
+      ],
+      "features": {
+        "n_cycles": 1.0,
+        "mean_cycle": 28.0,
+        "last_cycle": 28.0,
+        "sd_cycle": 2.2290013357137504,
+        "mean_period": 5.0,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 28.73646240576025,
+        "period_raw": 5.259595734382967,
+        "luteal_raw": null,
+        "ovulation_raw": 15.734008085440571,
+        "range_low_raw": 25.492957746478872,
+        "range_high_raw": 32.78903170979197,
+        "cycle_days": 29,
+        "period_days": 5,
+        "ovulation_day": 16,
+        "range_low_days": 25,
+        "range_high_days": 33
+      }
+    },
+    {
+      "name": "one_cycle_period_unknown",
+      "history": [
+        [
+          31,
+          null
+        ]
+      ],
+      "features": {
+        "n_cycles": 1.0,
+        "mean_cycle": 31.0,
+        "last_cycle": 31.0,
+        "sd_cycle": 2.2290013357137504,
+        "mean_period": 5.0,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 30.877323782267798,
+        "period_raw": 5.201819849586488,
+        "luteal_raw": null,
+        "ovulation_raw": 17.762255527986806,
+        "range_low_raw": 26.760563380281695,
+        "range_high_raw": 35.69116022330828,
+        "cycle_days": 31,
+        "period_days": 5,
+        "ovulation_day": 18,
+        "range_low_days": 27,
+        "range_high_days": 36
+      }
+    },
+    {
+      "name": "one_long_cycle",
+      "history": [
+        [
+          45,
+          6
+        ]
+      ],
+      "features": {
+        "n_cycles": 1.0,
+        "mean_cycle": 45.0,
+        "last_cycle": 45.0,
+        "sd_cycle": 2.2290013357137504,
+        "mean_period": 6.0,
+        "last_period": 6.0
+      },
+      "expected": {
+        "cycle_raw": 40.89243782033093,
+        "period_raw": 5.653580849321113,
+        "luteal_raw": null,
+        "ovulation_raw": 27.342843802385662,
+        "range_low_raw": 32.67605633802819,
+        "range_high_raw": 49.23442661971771,
+        "cycle_days": 41,
+        "period_days": 6,
+        "ovulation_day": 27,
+        "range_low_days": 33,
+        "range_high_days": 49
+      }
+    },
+    {
+      "name": "two_cycles",
+      "history": [
+        [
+          27,
+          4
+        ],
+        [
+          29,
+          5
+        ]
+      ],
+      "features": {
+        "n_cycles": 2.0,
+        "mean_cycle": 28.0,
+        "last_cycle": 29.0,
+        "sd_cycle": 1.0,
+        "mean_period": 4.5,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 28.360727622132742,
+        "period_raw": 4.90810010727526,
+        "luteal_raw": null,
+        "ovulation_raw": 15.681222748921115,
+        "range_low_raw": 25.492957746478872,
+        "range_high_raw": 31.6865349314693,
+        "cycle_days": 28,
+        "period_days": 5,
+        "ovulation_day": 16,
+        "range_low_days": 25,
+        "range_high_days": 32
+      }
+    },
+    {
+      "name": "two_short_cycles",
+      "history": [
+        [
+          21,
+          3
+        ],
+        [
+          22,
+          3
+        ]
+      ],
+      "features": {
+        "n_cycles": 2.0,
+        "mean_cycle": 21.5,
+        "last_cycle": 22.0,
+        "sd_cycle": 0.5,
+        "mean_period": 3.0,
+        "last_period": 3.0
+      },
+      "expected": {
+        "cycle_raw": 23.588299224275886,
+        "period_raw": 3.8226008859396194,
+        "luteal_raw": null,
+        "ovulation_raw": 11.121819341497707,
+        "range_low_raw": 22.746478873239433,
+        "range_high_raw": 25.055322353115983,
+        "cycle_days": 24,
+        "period_days": 4,
+        "ovulation_day": 11,
+        "range_low_days": 23,
+        "range_high_days": 25
+      }
+    },
+    {
+      "name": "three_identical",
+      "history": [
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ]
+      ],
+      "features": {
+        "n_cycles": 3.0,
+        "mean_cycle": 28.0,
+        "last_cycle": 28.0,
+        "sd_cycle": 0.0,
+        "mean_period": 5.0,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 28.111338198206237,
+        "period_raw": 5.054081815609008,
+        "luteal_raw": null,
+        "ovulation_raw": 15.681760232500814,
+        "range_low_raw": 25.492957746478872,
+        "range_high_raw": 30.741255569467242,
+        "cycle_days": 28,
+        "period_days": 5,
+        "ovulation_day": 16,
+        "range_low_days": 25,
+        "range_high_days": 31
+      }
+    },
+    {
+      "name": "three_irregular",
+      "history": [
+        [
+          20,
+          4
+        ],
+        [
+          45,
+          7
+        ],
+        [
+          20,
+          4
+        ]
+      ],
+      "features": {
+        "n_cycles": 3.0,
+        "mean_cycle": 28.333333333333332,
+        "last_cycle": 20.0,
+        "sd_cycle": 11.785113019775793,
+        "mean_period": 5.0,
+        "last_period": 4.0
+      },
+      "expected": {
+        "cycle_raw": 31.078046978185228,
+        "period_raw": 5.207856403809767,
+        "luteal_raw": null,
+        "ovulation_raw": 14.947550660990366,
+        "range_low_raw": 25.633802816901408,
+        "range_high_raw": 39.154606052581066,
+        "cycle_days": 31,
+        "period_days": 5,
+        "ovulation_day": 15,
+        "range_low_days": 26,
+        "range_high_days": 39
+      }
+    },
+    {
+      "name": "four_varying",
+      "history": [
+        [
+          24,
+          5
+        ],
+        [
+          32,
+          5
+        ],
+        [
+          28,
+          6
+        ],
+        [
+          36,
+          5
+        ]
+      ],
+      "features": {
+        "n_cycles": 4.0,
+        "mean_cycle": 30.0,
+        "last_cycle": 36.0,
+        "sd_cycle": 4.47213595499958,
+        "mean_period": 5.25,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 30.01673943457898,
+        "period_raw": 5.441040852243315,
+        "luteal_raw": null,
+        "ovulation_raw": 16.102160147820335,
+        "range_low_raw": 26.338028169014088,
+        "range_high_raw": 35.487541032665746,
+        "cycle_days": 30,
+        "period_days": 5,
+        "ovulation_day": 16,
+        "range_low_days": 26,
+        "range_high_days": 35
+      }
+    },
+    {
+      "name": "six_regular",
+      "history": [
+        [
+          29,
+          5
+        ],
+        [
+          29,
+          5
+        ],
+        [
+          29,
+          6
+        ],
+        [
+          29,
+          5
+        ],
+        [
+          29,
+          5
+        ],
+        [
+          29,
+          6
+        ]
+      ],
+      "features": {
+        "n_cycles": 6.0,
+        "mean_cycle": 29.0,
+        "last_cycle": 29.0,
+        "sd_cycle": 0.0,
+        "mean_period": 5.333333333333333,
+        "last_period": 6.0
+      },
+      "expected": {
+        "cycle_raw": 28.59177543374286,
+        "period_raw": 5.245944177562556,
+        "luteal_raw": null,
+        "ovulation_raw": 16.05790551985299,
+        "range_low_raw": 25.91549295774648,
+        "range_high_raw": 30.932398449041088,
+        "cycle_days": 29,
+        "period_days": 5,
+        "ovulation_day": 16,
+        "range_low_days": 26,
+        "range_high_days": 31
+      }
+    },
+    {
+      "name": "six_short",
+      "history": [
+        [
+          23,
+          4
+        ],
+        [
+          24,
+          4
+        ],
+        [
+          22,
+          4
+        ],
+        [
+          25,
+          4
+        ],
+        [
+          23,
+          4
+        ],
+        [
+          24,
+          4
+        ]
+      ],
+      "features": {
+        "n_cycles": 6.0,
+        "mean_cycle": 23.5,
+        "last_cycle": 24.0,
+        "sd_cycle": 0.9574271077563381,
+        "mean_period": 4.0,
+        "last_period": 4.0
+      },
+      "expected": {
+        "cycle_raw": 24.766378009409358,
+        "period_raw": 4.320023998520216,
+        "luteal_raw": null,
+        "ovulation_raw": 11.964805072501472,
+        "range_low_raw": 23.591549295774644,
+        "range_high_raw": 26.26913666140488,
+        "cycle_days": 25,
+        "period_days": 4,
+        "ovulation_day": 12,
+        "range_low_days": 24,
+        "range_high_days": 26
+      }
+    },
+    {
+      "name": "six_long",
+      "history": [
+        [
+          35,
+          6
+        ],
+        [
+          38,
+          7
+        ],
+        [
+          34,
+          6
+        ],
+        [
+          36,
+          7
+        ],
+        [
+          37,
+          6
+        ],
+        [
+          35,
+          7
+        ]
+      ],
+      "features": {
+        "n_cycles": 6.0,
+        "mean_cycle": 35.833333333333336,
+        "last_cycle": 35.0,
+        "sd_cycle": 1.3437096247164249,
+        "mean_period": 6.5,
+        "last_period": 7.0
+      },
+      "expected": {
+        "cycle_raw": 33.79918476826938,
+        "period_raw": 5.967007975708795,
+        "luteal_raw": null,
+        "ovulation_raw": 20.689663426283175,
+        "range_low_raw": 28.802816901408463,
+        "range_high_raw": 38.465305880503124,
+        "cycle_days": 34,
+        "period_days": 6,
+        "ovulation_day": 21,
+        "range_low_days": 29,
+        "range_high_days": 38
+      }
+    },
+    {
+      "name": "six_very_irregular_some_periods_unknown",
+      "history": [
+        [
+          22,
+          4
+        ],
+        [
+          40,
+          null
+        ],
+        [
+          25,
+          5
+        ],
+        [
+          38,
+          null
+        ],
+        [
+          21,
+          4
+        ],
+        [
+          44,
+          6
+        ]
+      ],
+      "features": {
+        "n_cycles": 6.0,
+        "mean_cycle": 31.666666666666668,
+        "last_cycle": 44.0,
+        "sd_cycle": 9.249624617007738,
+        "mean_period": 4.75,
+        "last_period": 6.0
+      },
+      "expected": {
+        "cycle_raw": 31.70217172248076,
+        "period_raw": 5.5928868802346585,
+        "luteal_raw": null,
+        "ovulation_raw": 16.263214310052497,
+        "range_low_raw": 27.042253521126767,
+        "range_high_raw": 39.86225864138757,
+        "cycle_days": 32,
+        "period_days": 6,
+        "ovulation_day": 16,
+        "range_low_days": 27,
+        "range_high_days": 40
+      }
+    },
+    {
+      "name": "ten_regular",
+      "history": [
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          28,
+          5
+        ]
+      ],
+      "features": {
+        "n_cycles": 6.0,
+        "mean_cycle": 28.0,
+        "last_cycle": 28.0,
+        "sd_cycle": 0.0,
+        "mean_period": 5.0,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 27.83798041167455,
+        "period_raw": 4.899256038229755,
+        "luteal_raw": null,
+        "ovulation_raw": 15.24960200209237,
+        "range_low_raw": 25.492957746478872,
+        "range_high_raw": 29.965022277868986,
+        "cycle_days": 28,
+        "period_days": 5,
+        "ovulation_day": 15,
+        "range_low_days": 25,
+        "range_high_days": 30
+      }
+    },
+    {
+      "name": "ten_mixed_last_six_used",
+      "history": [
+        [
+          40,
+          7
+        ],
+        [
+          22,
+          3
+        ],
+        [
+          30,
+          5
+        ],
+        [
+          31,
+          5
+        ],
+        [
+          29,
+          4
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          33,
+          6
+        ],
+        [
+          27,
+          5
+        ],
+        [
+          30,
+          5
+        ],
+        [
+          29,
+          5
+        ]
+      ],
+      "features": {
+        "n_cycles": 6.0,
+        "mean_cycle": 29.333333333333332,
+        "last_cycle": 29.0,
+        "sd_cycle": 1.8856180831641267,
+        "mean_period": 5.0,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 29.181543213791965,
+        "period_raw": 4.952418051455252,
+        "luteal_raw": null,
+        "ovulation_raw": 15.968644705365346,
+        "range_low_raw": 26.056338028169016,
+        "range_high_raw": 32.54939985426749,
+        "cycle_days": 29,
+        "period_days": 5,
+        "ovulation_day": 16,
+        "range_low_days": 26,
+        "range_high_days": 33
+      }
+    },
+    {
+      "name": "invalid_lengths_dropped",
+      "history": [
+        [
+          90,
+          5
+        ],
+        [
+          27,
+          5
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          30,
+          6
+        ],
+        [
+          29,
+          5
+        ]
+      ],
+      "features": {
+        "n_cycles": 3.0,
+        "mean_cycle": 28.666666666666668,
+        "last_cycle": 29.0,
+        "sd_cycle": 1.247219128924647,
+        "mean_period": 5.333333333333333,
+        "last_period": 5.0
+      },
+      "expected": {
+        "cycle_raw": 28.809613865608362,
+        "period_raw": 5.2838970101827005,
+        "luteal_raw": null,
+        "ovulation_raw": 15.974993396143478,
+        "range_low_raw": 25.774647887323944,
+        "range_high_raw": 32.2424325161188,
+        "cycle_days": 29,
+        "period_days": 5,
+        "ovulation_day": 16,
+        "range_low_days": 26,
+        "range_high_days": 32
+      }
+    }
+  ]
+}
