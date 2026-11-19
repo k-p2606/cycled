@@ -358,7 +358,7 @@ private fun loggedRange(from: LocalDate, to: LocalDate, flow: FlowLevel = FlowLe
 private fun previewState(logged: Map<LocalDate, FlowLevel>, today: LocalDate): CalendarUiState =
     buildCalendarState(logged, groupIntoPeriods(logged.keys.toList()), today, AverageCyclePredictor())
 
-/** Oct 4-8 and Nov 1-5: 28-day cycle, predicted Nov 29 - Dec 3, fertile Nov 11-17. */
+/** Oct 4-8 and Nov 1-5: 28-day cycle, predicted Nov 29 - Dec 3, fertile Nov 10-16. */
 private val TwoPeriods = loggedRange(date(10, 4), date(10, 8)) + mapOf(
     date(11, 1) to FlowLevel.LIGHT,
     date(11, 2) to FlowLevel.HEAVY,

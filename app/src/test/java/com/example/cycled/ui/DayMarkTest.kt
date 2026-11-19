@@ -28,7 +28,7 @@ class DayMarkTest {
 
     // Oct 3-6 (4 days) and Nov 1-5, today Nov 13.
     // Cycle length 29 -> next start Nov 30; typical period length 4 -> predicted Nov 30 - Dec 3.
-    // Ovulation Nov 17 (13-day luteal phase); fertile window Nov 12 - Nov 18.
+    // Ovulation Nov 16; fertile window Nov 11 - Nov 17.
     private val twoPeriods = days(d(10, 3), d(10, 6), FlowLevel.LIGHT) + days(d(11, 1), d(11, 5), FlowLevel.HEAVY)
     private val calendar = state(twoPeriods, d(11, 13))
 
@@ -54,12 +54,12 @@ class DayMarkTest {
     @Test
     fun fertileWindow_markedExactlyFromStartToEnd() {
         val phases = calendar.forecast!!.phases
-        assertEquals(d(11, 12), phases.fertileStart)
-        assertEquals(d(11, 18), phases.fertileEnd)
+        assertEquals(d(11, 11), phases.fertileStart)
+        assertEquals(d(11, 17), phases.fertileEnd)
 
-        assertFalse(mark(d(11, 11)).isFertile)
-        for (day in 12..18) assertTrue("Nov $day", mark(d(11, day)).isFertile)
-        assertFalse(mark(d(11, 19)).isFertile)
+        assertFalse(mark(d(11, 10)).isFertile)
+        for (day in 11..17) assertTrue("Nov $day", mark(d(11, day)).isFertile)
+        assertFalse(mark(d(11, 18)).isFertile)
     }
 
     @Test

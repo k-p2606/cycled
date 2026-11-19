@@ -315,13 +315,13 @@ private fun HomeScreenLatePreview() {
     }
 }
 
-/** 19-day cycles: ovulation lands right after the period, so there's no follicular segment. */
+/** 20-day cycles: ovulation lands right after the period, so there's no follicular segment. */
 @Preview(showBackground = true, heightDp = 1100)
 @Composable
 private fun HomeScreenShortCyclePreview() {
     val state = buildHomeState(
         periods = listOf(
-            Period(LocalDate.of(2026, 10, 13), LocalDate.of(2026, 10, 17)),
+            Period(LocalDate.of(2026, 10, 12), LocalDate.of(2026, 10, 16)),
             Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5)),
         ),
         today = LocalDate.of(2026, 11, 7),
