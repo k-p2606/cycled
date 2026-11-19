@@ -16,6 +16,7 @@ local.properties
 
 # Python / predictions
 resources/**/*.csv
+resources/processed/*.json
 .venv/
 __pycache__/
 predictions/figures/
