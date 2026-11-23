@@ -1,6 +1,5 @@
 package com.example.cycled.ui.calendar
 
-import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -177,17 +175,35 @@ fun CalendarScreen(
 }
 
 /**
- * One day in the grid, drawn from [mark] in layers (later on top): phase tint,
- * predicted-period outline, logged fill, day number, fertile dot, today's ring.
+ * One day in the grid, styled from [mark] with the design's rules (first match wins):
+ * logged flow, predicted period, then the phase. Today's ring replaces any other ring.
+ * The full Calendar redesign comes later; this keeps the existing grid on the new colours.
  */
 @Composable
 private fun DayCell(mark: DayMark, modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
     val phaseColors = MaterialTheme.phaseColors
     val logged = mark.loggedFlow != null
+    val predicted = mark.isPredictedPeriod && !logged
     val description = remember(mark) { mark.spokenDescription(Locale.getDefault()) }
-    // Inset the circle when today so the ring stays visible around it.
-    val circleInset = if (mark.isToday) 4.dp else 0.dp
+
+    val fill: Color? = when {
+        logged -> phaseColors.loggedFill
+        predicted -> null
+        mark.phase != null -> phaseColors.fill(mark.phase)
+        else -> null
+    }
+    val numberColor = when {
+        logged -> phaseColors.onLoggedFill
+        predicted -> phaseColors.predictedNumber
+        mark.phase != null -> phaseColors.number(mark.phase)
+        else -> phaseColors.defaultNumber
+    }
+    val ring: Color? = when {
+        mark.isToday -> null // drawn separately, on top
+        logged || predicted -> null
+        mark.phase != null -> phaseColors.ring(mark.phase)
+        else -> null
+    }
 
     Box(
         modifier = modifier
@@ -195,53 +211,30 @@ private fun DayCell(mark: DayMark, modifier: Modifier = Modifier) {
             .clearAndSetSemantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
-        // 1. Phase tint, with a 1dp gap to its neighbours so phases read as blocks.
-        if (mark.phase != null) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(1.dp)
-                    .background(phaseColors.tint(mark.phase), RoundedCornerShape(6.dp)),
-            )
-        }
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(3.dp)
-                .padding(circleInset),
+                .padding(4.dp),
         ) {
-            // 2. Predicted period day: a dashed outline, so it reads as a guess.
-            if (mark.isPredictedPeriod && !logged) {
-                Box(Modifier.fillMaxSize().dashedCircle(phaseColors.predictedOutline))
+            if (fill != null) Box(Modifier.fillMaxSize().background(fill, CircleShape))
+            if (predicted && !mark.isToday) {
+                Box(Modifier.fillMaxSize().dashedCircle(phaseColors.predictedRing))
             }
-            // 3. Logged day: a solid circle covering any tint or outline under it.
-            if (logged) {
-                Box(Modifier.fillMaxSize().background(phaseColors.loggedFill, CircleShape))
-            }
+            if (ring != null) Box(Modifier.fillMaxSize().border(1.5.dp, ring, CircleShape))
+            if (mark.isToday) Box(Modifier.fillMaxSize().border(2.dp, phaseColors.todayRing, CircleShape))
         }
 
         Text(
             text = mark.date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (logged) phaseColors.onLoggedFill else colors.onSurface,
+            style = MaterialTheme.typography.labelLarge,
+            color = numberColor,
         )
 
-        // 4. Fertile window: a small dot under the number, on any day it applies to.
+        // Fertile window: a small dot under the number (moves to "logged" in the redesign, D5).
         if (mark.isFertile) {
             FertileDot(
-                color = if (logged) phaseColors.onLoggedFill else phaseColors.fertileDot,
+                color = if (fill != null) numberColor else phaseColors.loggedDot,
                 modifier = Modifier.offset(y = 12.dp),
-            )
-        }
-
-        // 5. Today: the ring, always on top.
-        if (mark.isToday) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(3.dp)
-                    .border(2.dp, colors.primary, CircleShape),
             )
         }
     }
@@ -294,11 +287,16 @@ private fun Legend(state: CalendarUiState, modifier: Modifier = Modifier) {
 
         if (forecast != null) {
             Phase.entries.forEach { phase ->
+                val fill = phaseColors.fill(phase)
+                val ring = phaseColors.ring(phase)
+                // Menstrual days have no style of their own; the period rows below cover them.
+                if (fill == null && ring == null) return@forEach
                 LegendRow(label = "${phase.displayName} phase (estimated)") {
                     Box(
                         Modifier
                             .size(swatchSize)
-                            .background(phaseColors.tint(phase), RoundedCornerShape(4.dp)),
+                            .then(if (fill != null) Modifier.background(fill, CircleShape) else Modifier)
+                            .then(if (ring != null) Modifier.border(1.5.dp, ring, CircleShape) else Modifier),
                     )
                 }
             }
@@ -310,11 +308,11 @@ private fun Legend(state: CalendarUiState, modifier: Modifier = Modifier) {
 
         if (forecast != null) {
             LegendRow(label = "Predicted period") {
-                Box(Modifier.size(swatchSize).dashedCircle(phaseColors.predictedOutline))
+                Box(Modifier.size(swatchSize).dashedCircle(phaseColors.predictedRing))
             }
             LegendRow(label = "Fertile window (estimated)") {
                 Box(Modifier.size(swatchSize), contentAlignment = Alignment.Center) {
-                    FertileDot(phaseColors.fertileDot)
+                    FertileDot(phaseColors.loggedDot)
                 }
             }
             LegendNote("The fertile window can overlap other phases.")
@@ -368,9 +366,8 @@ private val TwoPeriods = loggedRange(date(10, 4), date(10, 8)) + mapOf(
 )
 
 @Composable
-private fun PreviewCalendar(month: YearMonth, state: CalendarUiState, darkTheme: Boolean = false) {
-    // Dynamic colour off so previews show the app's own colour schemes.
-    CycledTheme(darkTheme = darkTheme, dynamicColor = false) {
+private fun PreviewCalendar(month: YearMonth, state: CalendarUiState) {
+    CycledTheme {
         CalendarScreen(
             month = month,
             state = state,
@@ -413,12 +410,6 @@ private fun CalendarPlaceholderPreview() {
 @Composable
 private fun CalendarNoDataPreview() {
     PreviewCalendar(YearMonth.of(2026, 11), previewState(emptyMap(), date(11, 13)))
-}
-
-@Preview(showBackground = true, heightDp = 900, uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-private fun CalendarCurrentCycleDarkPreview() {
-    PreviewCalendar(YearMonth.of(2026, 11), previewState(TwoPeriods, date(11, 13)), darkTheme = true)
 }
 
 @Preview(showBackground = true, heightDp = 900)

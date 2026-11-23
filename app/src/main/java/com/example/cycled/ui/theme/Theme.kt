@@ -1,58 +1,65 @@
 package com.example.cycled.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+/**
+ * The design tokens mapped onto Material roles, so stock components (Text, Button,
+ * Switch, dialogs) pick up the palette without per-call colours.
+ */
+fun cycledColorScheme(c: CycledColors): ColorScheme = darkColorScheme(
+    primary = c.cream,
+    onPrimary = c.sky,
+    primaryContainer = c.selectedCell,
+    onPrimaryContainer = c.cream,
+    inversePrimary = c.water,
+    secondary = c.fertile,
+    onSecondary = c.sky,
+    secondaryContainer = c.water,
+    onSecondaryContainer = c.text,
+    tertiary = c.luteal,
+    onTertiary = c.sky,
+    tertiaryContainer = c.waterBack,
+    onTertiaryContainer = c.text,
+    background = c.sky,
+    onBackground = c.text,
+    surface = c.sky,
+    onSurface = c.text,
+    surfaceVariant = c.water,
+    onSurfaceVariant = c.textDim,
+    surfaceTint = c.cream,
+    inverseSurface = c.cream,
+    inverseOnSurface = c.sky,
+    error = c.period,
+    onError = c.sky,
+    errorContainer = c.period,
+    onErrorContainer = c.sky,
+    outline = c.outline,
+    outlineVariant = c.dividerSky,
+    surfaceBright = c.selectedCell,
+    surfaceDim = c.sky,
+    surfaceContainerLowest = c.sky,
+    surfaceContainerLow = c.waterBack,
+    surfaceContainer = c.waterBack,
+    surfaceContainerHigh = c.water,
+    surfaceContainerHighest = c.selectedCell,
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-)
-
+/**
+ * The app theme. The design is dark-only and uses its own palette, so there is no
+ * light scheme and no dynamic colour (D11).
+ */
 @Composable
-fun CycledTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+fun CycledTheme(content: @Composable () -> Unit) {
+    val colors = CycledDarkColors
+    CompositionLocalProvider(LocalCycledColors provides colors) {
+        MaterialTheme(
+            colorScheme = cycledColorScheme(colors),
+            typography = Typography,
+            content = content,
+        )
     }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
 }

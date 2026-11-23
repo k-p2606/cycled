@@ -3,6 +3,7 @@ package com.example.cycled
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cycled.ui.CycleViewModel
-import com.example.cycled.ui.CycledNavHost
+import com.example.cycled.ui.CycledApp
 import com.example.cycled.ui.theme.CycledTheme
 
 /**
@@ -49,7 +50,12 @@ import com.example.cycled.ui.theme.CycledTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // The app is dark-only, so the system bars always get light icons,
+        // whatever the phone's own light/dark setting is.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
 
         // setContent { ... } says "draw this UI on the screen".
         // Everything inside is built from @Composable functions.
@@ -58,9 +64,8 @@ class MainActivity : ComponentActivity() {
                 // The ViewModel survives rotation; its Factory pulls the
                 // repository from CycledApplication.
                 val cycleViewModel: CycleViewModel = viewModel(factory = CycleViewModel.Factory)
-                // Opens on Home; each screen has its own Scaffold, which pads
-                // its content away from the status bar / navigation bar.
-                CycledNavHost(cycleViewModel)
+                // Opens on Home, with the bottom tab bar on every screen.
+                CycledApp(cycleViewModel)
             }
         }
     }

@@ -36,6 +36,9 @@ private val BarHeight = 12.dp
 private val SegmentGap = 2.dp
 private val MarkerHeight = 7.dp
 
+/** Phases other than the current one are drawn faded. */
+private const val MutedAlpha = 0.4f
+
 /**
  * The cycle as a bar of phase segments with a marker over today, then one row per
  * phase with its approximate dates, then "Day X of about Y". Dates are kept off the
@@ -79,11 +82,8 @@ fun PhaseBar(model: PhaseBarModel, modifier: Modifier = Modifier) {
                 val spans = model.segmentSpans(size.width, SegmentGap.toPx())
                 model.segments.forEachIndexed { i, segment ->
                     val (start, end) = spans[i]
-                    val color = if (segment.phase == model.currentPhase) {
-                        phaseColors.accent(segment.phase)
-                    } else {
-                        phaseColors.tint(segment.phase)
-                    }
+                    val color = phaseColors.accent(segment.phase)
+                        .copy(alpha = if (segment.phase == model.currentPhase) 1f else MutedAlpha)
                     drawRect(color, topLeft = Offset(start, 0f), size = Size(end - start, size.height))
                 }
             }
@@ -121,7 +121,7 @@ private fun PhaseRow(segment: PhaseSegment, isCurrent: Boolean, locale: Locale) 
             Modifier
                 .size(12.dp)
                 .background(
-                    if (isCurrent) phaseColors.accent(segment.phase) else phaseColors.tint(segment.phase),
+                    phaseColors.accent(segment.phase).copy(alpha = if (isCurrent) 1f else MutedAlpha),
                     RoundedCornerShape(3.dp),
                 ),
         )
