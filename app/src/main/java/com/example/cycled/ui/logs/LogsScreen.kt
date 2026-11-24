@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -50,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.cycled.data.FlowLevel
 import com.example.cycled.domain.CycleLog
+import com.example.cycled.domain.CycleStats
 import com.example.cycled.domain.LoggedDay
 import com.example.cycled.domain.groupIntoPeriods
 import com.example.cycled.ui.CycleViewModel
@@ -94,6 +97,7 @@ fun LogsScreen(
     val colors = MaterialTheme.cycledColors
     val locale = Locale.getDefault()
     val cycles = (state as? LogsUiState.Ready)?.cycles.orEmpty()
+    val summary = (state as? LogsUiState.Ready)?.summary
     val selected = cycles.firstOrNull { it.start == selectedStart } ?: cycles.firstOrNull()
 
     Column(modifier.fillMaxSize().background(colors.sky)) {
@@ -106,6 +110,10 @@ fun LogsScreen(
                 .padding(horizontal = 24.dp)
                 .semantics { heading() },
         )
+        if (summary != null) {
+            Spacer(Modifier.height(10.dp))
+            StatsSummary(summary)
+        }
         if (cycles.isNotEmpty()) {
             Spacer(Modifier.height(14.dp))
             CycleTabs(cycles, selected, locale, onSelectCycle)
@@ -123,6 +131,32 @@ fun LogsScreen(
                 state == LogsUiState.Loading -> Unit
                 selected == null -> EmptyText("Nothing logged yet.")
                 else -> CycleDays(selected, locale, onOpenDay)
+            }
+        }
+    }
+}
+
+/**
+ * Average cycle, average period and variation, value over label. Wraps onto a second
+ * line rather than clipping on narrow screens or large text. Read out as one sentence.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StatsSummary(stats: CycleStats) {
+    val colors = MaterialTheme.cycledColors
+    val spoken = LogsFormat.summarySpoken(stats)
+    FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .clearAndSetSemantics { contentDescription = spoken },
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        LogsFormat.summaryItems(stats).forEach { (value, label) ->
+            Column {
+                Text(value, style = MaterialTheme.typography.titleLarge, color = colors.cream)
+                Text(label, style = MaterialTheme.typography.bodySmall, color = colors.textDim)
             }
         }
     }
@@ -308,6 +342,12 @@ private fun LogsEmptyCyclePreview() {
     val empty = CycleLog(start = start, end = null, lengthDays = 1, periodDays = 0, days = emptyList())
     PreviewLogs(LogsUiState.Ready(cycles = listOf(empty), today = start))
 }
+
+/** One completed cycle (3 Oct – 30 Oct) and the current one: no variation yet, so two items. */
+@Preview(widthDp = 390, heightDp = 768)
+@Composable
+private fun LogsOneCompletedCyclePreview() =
+    PreviewLogs(sampleState(days = SampleData.periodDays.filterKeys { it >= LocalDate.of(2026, 10, 1) }))
 
 @Preview(widthDp = 390, heightDp = 768)
 @Composable
