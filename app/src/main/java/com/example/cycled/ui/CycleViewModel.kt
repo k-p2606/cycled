@@ -33,11 +33,19 @@ class CycleViewModel(
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
 
-    /** Home's state, recalculated whenever a period day is logged or removed. */
+    /**
+     * Home's state, recalculated whenever a day is logged or changed. Periods and daily
+     * logs (for "For today" tips) come from the same emission so they never disagree.
+     */
     val homeState: StateFlow<HomeUiState> =
-        repository.observePeriods()
-            .map { periods -> buildHomeState(periods, today(), predictor) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)
+        combine(repository.observePeriodDays(), repository.observeAllLogs()) { days, logs ->
+            buildHomeState(
+                periods = groupIntoPeriods(days.map { it.date }),
+                today = today(),
+                predictor = predictor,
+                dailyLogs = logs.associateBy { it.date },
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)
 
     /** Calendar's selected day, as an epoch day in [savedState]. */
     private val selectedDate: StateFlow<LocalDate> =

@@ -1,5 +1,7 @@
 package com.example.cycled.ui.home
 
+import com.example.cycled.domain.RecCategory
+import com.example.cycled.domain.Recommendation
 import com.example.cycled.ui.ComingUpKind
 import com.example.cycled.ui.ComingUpRow
 import com.example.cycled.ui.CycleMessages
@@ -55,4 +57,23 @@ internal object HomeFormat {
     /** What the hero row reads as: "Cycle day 9, Flood tide, follicular phase". */
     fun heroSpoken(cycleDay: Int, tideName: String, subline: String, locale: Locale): String =
         "Cycle day $cycleDay, $tideName, ${subline.replaceFirstChar { it.lowercase(locale) }}"
+
+    /** "For today" section and sheet title. */
+    const val TIPS_TITLE = "For today"
+
+    /** The line under the tips, on Home and in the sheet. */
+    const val TIPS_DISCLAIMER = "General wellbeing tips, not medical advice. If pain or low mood is severe " +
+        "or stops you doing everyday things, talk to a clinician."
+
+    /** "Body", "Fitness", "Health", "Mind", "Food". */
+    fun categoryLabel(category: RecCategory): String = when (category) {
+        RecCategory.BODY -> "Body"
+        RecCategory.FITNESS -> "Fitness"
+        RecCategory.HEALTH -> "Health"
+        RecCategory.MIND -> "Mind"
+        RecCategory.FOOD -> "Food"
+    }
+
+    /** "Body tip: Heat for cramps. Try a hot water bottle ..." */
+    fun tipSpoken(tip: Recommendation): String = "${categoryLabel(tip.category)} tip: ${tip.title}. ${tip.body}"
 }

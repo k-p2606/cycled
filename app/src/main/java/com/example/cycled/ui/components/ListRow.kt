@@ -47,6 +47,37 @@ fun ListRow(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
+    ListRow(
+        modifier = modifier,
+        dividerColor = dividerColor,
+        minHeight = minHeight,
+        onClick = onClick,
+        leading = leading,
+        trailing = trailing,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = labelColor,
+        )
+    }
+}
+
+/**
+ * [ListRow] with any [content] in place of the one-line label, e.g. several lines of
+ * text. [content] takes the width left between [leading] and [trailing].
+ */
+@Composable
+fun ListRow(
+    modifier: Modifier = Modifier,
+    dividerColor: Color = MaterialTheme.cycledColors.dividerSky,
+    minHeight: Dp = 52.dp,
+    verticalPadding: Dp = 4.dp,
+    onClick: (() -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
     Column(modifier.fillMaxWidth()) {
         HorizontalDivider(thickness = 1.dp, color = dividerColor)
         Row(
@@ -54,17 +85,12 @@ fun ListRow(
                 .fillMaxWidth()
                 .heightIn(min = minHeight)
                 .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-                .padding(vertical = 4.dp),
+                .padding(vertical = verticalPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             leading?.invoke()
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                color = labelColor,
-                modifier = Modifier.weight(1f),
-            )
+            Box(Modifier.weight(1f)) { content() }
             trailing?.invoke(this)
         }
     }

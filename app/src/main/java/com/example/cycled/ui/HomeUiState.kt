@@ -5,6 +5,7 @@ import com.example.cycled.domain.CyclePhases
 import com.example.cycled.domain.CycleStatus
 import com.example.cycled.domain.Phase
 import com.example.cycled.domain.Prediction
+import com.example.cycled.domain.Recommendation
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -36,6 +37,12 @@ sealed interface HomeUiState {
         val moonPhase: Double,
         /** Cycle day the today marker sits on: today's, clamped to L (D3). */
         val markerCycleDay: Int,
+        /** "For today": up to three tips, most relevant first. */
+        val recommendations: List<Recommendation> = emptyList(),
+        /** "See all": one tip per category, in category order (Body, Fitness, Health, Mind, Food). */
+        val allRecommendations: List<Recommendation> = emptyList(),
+        /** The late-period tip, shown above the categories in "See all"; null unless late. */
+        val lateTip: Recommendation? = null,
     ) : HomeUiState {
         /** Predicted length of the current cycle: from its first day to the predicted next start. */
         val cycleLengthDays: Int

@@ -2,6 +2,7 @@ package com.example.cycled.ui.logs
 
 import com.example.cycled.data.FlowLevel
 import com.example.cycled.domain.CycleLog
+import com.example.cycled.domain.CycleStats
 import com.example.cycled.domain.LoggedDay
 import com.example.cycled.ui.label
 import java.time.LocalDate
@@ -65,6 +66,27 @@ internal object LogsFormat {
         detailLine(day, locale)?.let { add(it.replace(" · ", ", ").lowercase(locale)) }
         add("day ${day.cycleDay} of the cycle")
     }.joinToString(", ")
+
+    /** The summary row's items, value over label: "28 days" / "avg cycle", ... Null stats are left out. */
+    fun summaryItems(stats: CycleStats): List<Pair<String, String>> = listOfNotNull(
+        days(stats.averageCycleDays) to "avg cycle",
+        stats.averagePeriodDays?.let { days(it) to "avg period" },
+        stats.variationDays?.let { "±${days(it)}" to "varies by" },
+    )
+
+    /**
+     * The summary as one sentence: "Over your last 3 cycles: average cycle 28 days,
+     * average period 5 days, varies by about 1 day."
+     */
+    fun summarySpoken(stats: CycleStats): String {
+        val over = if (stats.cyclesUsed == 1) "Over your last cycle" else "Over your last ${stats.cyclesUsed} cycles"
+        val parts = listOfNotNull(
+            "average cycle ${days(stats.averageCycleDays)}",
+            stats.averagePeriodDays?.let { "average period ${days(it)}" },
+            stats.variationDays?.let { if (it == 0) "varies by less than a day" else "varies by about ${days(it)}" },
+        )
+        return "$over: ${parts.joinToString(", ")}."
+    }
 
     /** "4" and "Wed". */
     fun dateNumber(date: LocalDate): String = date.dayOfMonth.toString()
