@@ -11,11 +11,9 @@ import com.example.cycled.CycledApplication
 import com.example.cycled.data.CycleRepository
 import com.example.cycled.data.FlowChoice
 import com.example.cycled.data.Mood
-import com.example.cycled.data.PeriodDay
 import com.example.cycled.data.Symptom
 import com.example.cycled.domain.AverageCyclePredictor
 import com.example.cycled.domain.CyclePredictor
-import com.example.cycled.domain.Period
 import com.example.cycled.domain.groupIntoPeriods
 import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,16 +32,6 @@ class CycleViewModel(
     /** Keeps Calendar's selected day across process death; the ViewModel itself survives rotation. */
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
-
-    /** The individual logged bleeding days, ordered by date, each with its flow level. */
-    val periodDays: StateFlow<List<PeriodDay>> =
-        repository.observePeriodDays()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    /** Those days grouped into whole periods by groupIntoPeriods(). */
-    val periods: StateFlow<List<Period>> =
-        repository.observePeriods()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Home's state, recalculated whenever a period day is logged or removed. */
     val homeState: StateFlow<HomeUiState> =

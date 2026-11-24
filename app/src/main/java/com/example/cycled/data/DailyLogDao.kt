@@ -11,8 +11,14 @@ interface DailyLogDao {
     @Upsert
     suspend fun upsert(log: DailyLog)
 
+    @Upsert
+    suspend fun upsertAll(logs: List<DailyLog>)
+
     @Query("DELETE FROM daily_logs WHERE date = :date")
     suspend fun delete(date: LocalDate)
+
+    @Query("DELETE FROM daily_logs")
+    suspend fun deleteAll()
 
     @Query("SELECT * FROM daily_logs WHERE date = :date")
     fun observe(date: LocalDate): Flow<DailyLog?>

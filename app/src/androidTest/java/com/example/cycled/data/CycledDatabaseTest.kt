@@ -1,6 +1,7 @@
 package com.example.cycled.data
 
 import androidx.room.Room
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.time.Instant
@@ -98,6 +99,26 @@ class CycledDatabaseTest {
 
         assertTrue(periodDayDao.observeAll().first().isEmpty())
         assertEquals(DailyLog(date, symptoms = setOf(Symptom.CRAMPS), noFlow = true), dailyLogDao.get(date))
+    }
+
+    @Test
+    fun repository_deleteAllAndReplaceAll_runInATransaction() = runBlocking {
+        val repository = CycleRepository(
+            periodDayDao,
+            dailyLogDao,
+            inTransaction = { block -> db.withTransaction { block() } },
+        )
+        repository.setFlow(date, FlowChoice.HEAVY)
+        repository.setMood(date, Mood.LOW)
+
+        val other = date.minusDays(30)
+        repository.replaceAll(mapOf(other to FlowLevel.LIGHT), listOf(DailyLog(other, symptoms = setOf(Symptom.ACNE))))
+        assertEquals(listOf(other), periodDayDao.observeAll().first().map { it.date })
+        assertEquals(listOf(DailyLog(other, symptoms = setOf(Symptom.ACNE))), dailyLogDao.observeAll().first())
+
+        repository.deleteAll()
+        assertTrue(periodDayDao.observeAll().first().isEmpty())
+        assertTrue(dailyLogDao.observeAll().first().isEmpty())
     }
 
     @Test

@@ -23,7 +23,4 @@ object CycleMessages {
 
     /** Home's line under the coming-up rows, after "Likely <earliest> – <latest>. " (D4). */
     const val HOME_DISCLAIMER = "Estimates from your logged dates, not contraception or medical advice."
-
-    const val ESTIMATES_DISCLAIMER =
-        "Estimates based on your logged dates. Not medical advice or contraception."
 }

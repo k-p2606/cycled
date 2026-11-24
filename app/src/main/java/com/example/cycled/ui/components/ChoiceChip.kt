@@ -34,12 +34,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.cycled.ui.theme.CycledTheme
 import com.example.cycled.ui.theme.cycledColors
 
 val ChipHeight = 44.dp
 private val ChipGap = 6.dp
+/** Side padding for chips sized to their label (Symptoms). */
+private val ChipSidePadding = 14.dp
+/** Side padding for chips that fill a grid cell (Flow, Mood); the label is centred anyway. */
+private val GridChipSidePadding = 6.dp
 private const val DISABLED_ALPHA = 0.4f
 
 /**
@@ -60,6 +68,7 @@ fun ChoiceChip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     multiSelect: Boolean = false,
+    horizontalPadding: Dp = ChipSidePadding,
 ) {
     val colors = MaterialTheme.cycledColors
     val interaction = if (multiSelect) {
@@ -75,7 +84,7 @@ fun ChoiceChip(
             .background(if (selected) colors.cream else Color.Transparent)
             .border(1.dp, if (selected) colors.cream else colors.outline, CircleShape)
             .then(interaction)
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = horizontalPadding, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -88,8 +97,10 @@ fun ChoiceChip(
 }
 
 /**
- * A pick-one group (Flow, Mood) in a [columns]-wide grid with 6 dp gaps. Tapping the
- * selected chip again clears it: [onSelect] gets null.
+ * A pick-one group (Flow, Mood) in a grid with 6 dp gaps: [columns] wide, or fewer
+ * when the longest label wouldn't fit on one line (narrow phones, large fonts), so
+ * words never break mid-way. Tapping the selected chip again clears it: [onSelect]
+ * gets null.
  */
 @Composable
 fun <T> SingleChoiceChipGroup(
@@ -101,32 +112,50 @@ fun <T> SingleChoiceChipGroup(
     enabled: Boolean = true,
     columns: Int = 4,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .selectableGroup(),
-        verticalArrangement = Arrangement.spacedBy(ChipGap),
-    ) {
-        options.chunked(columns).forEach { row ->
-            // Equal heights across the row even if one label wraps.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.spacedBy(ChipGap),
-            ) {
-                row.forEach { option ->
-                    ChoiceChip(
-                        label = optionLabel(option),
-                        selected = option == selected,
-                        onClick = { onSelect(if (option == selected) null else option) },
-                        enabled = enabled,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                    )
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val density = LocalDensity.current
+        val widest = remember(options, style, density) {
+            options.maxOfOrNull { measurer.measure(optionLabel(it), style).size.width } ?: 0
+        }
+        val needed = with(density) { widest.toDp() } + GridChipSidePadding * 2 + 4.dp
+        val fits = (columns downTo 1).firstOrNull { c -> (maxWidth - ChipGap * (c - 1)) / c >= needed } ?: 1
+        // Four chips go 4 → 2 → 1 per row, so rows stay even.
+        val cols = when {
+            fits >= columns -> columns
+            fits >= 2 -> 2
+            else -> 1
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(ChipGap),
+        ) {
+            options.chunked(cols).forEach { row ->
+                // Equal heights across the row even if one label wraps.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(ChipGap),
+                ) {
+                    row.forEach { option ->
+                        ChoiceChip(
+                            label = optionLabel(option),
+                            selected = option == selected,
+                            onClick = { onSelect(if (option == selected) null else option) },
+                            enabled = enabled,
+                            horizontalPadding = GridChipSidePadding,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                    }
+                    repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
                 }
-                repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }

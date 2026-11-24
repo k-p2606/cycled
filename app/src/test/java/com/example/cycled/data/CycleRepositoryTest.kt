@@ -18,14 +18,18 @@ class CycleRepositoryTest {
     private class FakePeriodDayDao : PeriodDayDao {
         val rows = MutableStateFlow<Map<LocalDate, PeriodDay>>(emptyMap())
         override suspend fun upsert(day: PeriodDay) { rows.value = rows.value + (day.date to day) }
+        override suspend fun upsertAll(days: List<PeriodDay>) { rows.value = rows.value + days.associateBy { it.date } }
         override suspend fun delete(date: LocalDate) { rows.value = rows.value - date }
+        override suspend fun deleteAll() { rows.value = emptyMap() }
         override fun observeAll(): Flow<List<PeriodDay>> = rows.map { it.values.sortedBy(PeriodDay::date) }
     }
 
     private class FakeDailyLogDao : DailyLogDao {
         val rows = MutableStateFlow<Map<LocalDate, DailyLog>>(emptyMap())
         override suspend fun upsert(log: DailyLog) { rows.value = rows.value + (log.date to log) }
+        override suspend fun upsertAll(logs: List<DailyLog>) { rows.value = rows.value + logs.associateBy { it.date } }
         override suspend fun delete(date: LocalDate) { rows.value = rows.value - date }
+        override suspend fun deleteAll() { rows.value = emptyMap() }
         override fun observe(date: LocalDate): Flow<DailyLog?> = rows.map { it[date] }
         override suspend fun get(date: LocalDate): DailyLog? = rows.value[date]
         override fun observeAll(): Flow<List<DailyLog>> = rows.map { it.values.sortedBy(DailyLog::date) }
@@ -142,5 +146,27 @@ class CycleRepositoryTest {
         assertEquals(FlowChoice.NONE, FlowChoice.of(null, noFlow = true))
         assertNull(FlowChoice.of(FlowLevel.SPOTTING, noFlow = false))
         assertEquals(FlowChoice.HEAVY, FlowChoice.of(FlowLevel.HEAVY, noFlow = true))
+    }
+
+    @Test
+    fun deleteAll_clearsBothTables() = runBlocking {
+        repository.setFlow(day, FlowChoice.HEAVY)
+        repository.setMood(day.plusDays(1), Mood.LOW)
+        repository.deleteAll()
+        assertTrue(periodDays.rows.value.isEmpty())
+        assertTrue(logs.rows.value.isEmpty())
+    }
+
+    @Test
+    fun replaceAll_swapsEverythingForTheGivenData() = runBlocking {
+        repository.setFlow(day, FlowChoice.HEAVY)
+        repository.setMood(day, Mood.LOW)
+
+        val other = LocalDate.of(2026, 10, 1)
+        val log = DailyLog(other.plusDays(3), symptoms = setOf(Symptom.ACNE))
+        repository.replaceAll(mapOf(other to FlowLevel.LIGHT), listOf(log))
+
+        assertEquals(mapOf(other to PeriodDay(other, FlowLevel.LIGHT, loggedAt = 42)), periodDays.rows.value)
+        assertEquals(mapOf(log.date to log), logs.rows.value)
     }
 }

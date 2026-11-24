@@ -14,11 +14,14 @@ import kotlinx.coroutines.sync.withLock
  *
  * Screens and ViewModels should use this repository instead of talking to the
  * DAOs directly. [now] is the clock used to stamp when a period day was saved.
+ * [inTransaction] runs a block in one database transaction; the app passes Room's
+ * withTransaction, tests can run the block directly.
  */
 class CycleRepository(
     private val periodDayDao: PeriodDayDao,
     private val dailyLogDao: DailyLogDao,
     private val now: () -> Instant = { Instant.now() },
+    private val inTransaction: suspend (suspend () -> Unit) -> Unit = { it() },
 ) {
     /** Serialises the read-modify-write edits below, so quick taps can't lose an update. */
     private val editLock = Mutex()
@@ -70,6 +73,25 @@ class CycleRepository(
     /** Sets [date]'s mood; null clears it. */
     suspend fun setMood(date: LocalDate, mood: Mood?) = editLock.withLock {
         editLogLocked(date) { it.copy(mood = mood) }
+    }
+
+    /** Deletes every period day and daily log ("Delete all my data", D9). */
+    suspend fun deleteAll() = editLock.withLock {
+        inTransaction {
+            periodDayDao.deleteAll()
+            dailyLogDao.deleteAll()
+        }
+    }
+
+    /** Replaces everything with [periodDays] and [logs] in one go (debug "Load sample data", D12). */
+    suspend fun replaceAll(periodDays: Map<LocalDate, FlowLevel>, logs: Collection<DailyLog>) = editLock.withLock {
+        val stamp = now().toEpochMilli()
+        inTransaction {
+            periodDayDao.deleteAll()
+            dailyLogDao.deleteAll()
+            periodDayDao.upsertAll(periodDays.map { (date, flow) -> PeriodDay(date, flow, loggedAt = stamp) })
+            dailyLogDao.upsertAll(logs.toList())
+        }
     }
 
     /** Applies [change] to [date]'s log (an empty one if missing); deletes the row once it's empty. */

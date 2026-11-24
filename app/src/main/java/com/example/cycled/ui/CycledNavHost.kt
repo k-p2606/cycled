@@ -1,6 +1,12 @@
 package com.example.cycled.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -71,33 +77,43 @@ fun CycledApp(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentTab = TopLevelTab.of(backStackEntry?.destination)
 
-    Scaffold(
-        containerColor = MaterialTheme.cycledColors.sky,
-        // Screens handle the status bar themselves; the tab bar handles the navigation bar.
-        contentWindowInsets = WindowInsets(0),
-        bottomBar = {
-            TabBar(
-                items = TopLevelTab.entries.map { TabBarItem(it.label, it.icon) },
-                selectedIndex = currentTab.ordinal,
-                onSelect = { index ->
-                    val tab = TopLevelTab.entries[index]
-                    if (tab == currentTab) {
-                        // Re-tapping the current tab goes back to its first screen.
-                        navController.popBackStack(tab.pattern, inclusive = false)
-                    } else {
-                        navController.navigateToTab(tab)
-                    }
-                },
-                showTopDivider = currentTab == TopLevelTab.PROFILE,
+    // Screens draw edge to edge and scroll under the status bar; this sky strip keeps
+    // scrolled content from showing through behind the clock and icons.
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = MaterialTheme.cycledColors.sky,
+            // Screens handle the status bar themselves; the tab bar handles the navigation bar.
+            contentWindowInsets = WindowInsets(0),
+            bottomBar = {
+                TabBar(
+                    items = TopLevelTab.entries.map { TabBarItem(it.label, it.icon) },
+                    selectedIndex = currentTab.ordinal,
+                    onSelect = { index ->
+                        val tab = TopLevelTab.entries[index]
+                        if (tab == currentTab) {
+                            // Re-tapping the current tab goes back to its first screen.
+                            navController.popBackStack(tab.pattern, inclusive = false)
+                        } else {
+                            navController.navigateToTab(tab)
+                        }
+                    },
+                    showTopDivider = currentTab == TopLevelTab.PROFILE,
+                )
+            },
+        ) { innerPadding ->
+            CycledNavHost(
+                viewModel = viewModel,
+                navController = navController,
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding),
             )
-        },
-    ) { innerPadding ->
-        CycledNavHost(
-            viewModel = viewModel,
-            navController = navController,
-            modifier = Modifier
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding),
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars)
+                .background(MaterialTheme.cycledColors.sky),
         )
     }
 }
