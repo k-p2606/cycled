@@ -87,4 +87,16 @@ class PhaseColorsTest {
     fun everyPhaseHasADistinctAccent() {
         assertEquals(4, Phase.entries.map { colors.accent(it) }.distinct().size)
     }
+
+    @Test
+    fun follicularTeal_standsOutOnSky_andWhiteReadsOnIt() {
+        val teal = colors.fill(Phase.FOLLICULAR)!!
+        assertEquals(CycledDarkColors.follicular, teal)
+        assertContrast("teal fill on sky", teal, CycledDarkColors.sky, 3f)
+        assertContrast("white number on teal", Color.White, teal, 4.5f)
+    }
+
+    @Test
+    fun chipOutline_standsOutOnWater() =
+        assertContrast("chip outline on water", CycledDarkColors.outline, CycledDarkColors.water, 3f)
 }

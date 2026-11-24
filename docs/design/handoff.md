@@ -125,11 +125,11 @@ The palette is a deep-night sky above lighter water, with one cream highlight an
 | text-dim | #A9BFC7 | Secondary text on sky, inactive tabs |
 | divider-sky | #24414F | Row lines on sky |
 | divider-water | #2B5B70 | Row lines on water |
-| outline | #4A7A8E | Unselected chip borders |
+| outline | #6493A7 | Unselected chip borders |
 | selected-cell | #1C4E64 | Selected calendar day background |
 | period | #FF8A75 | Period days, Log period button, period dot |
 | period-light | #FFB3A5 | Predicted-period number, "Period logged" text |
-| follicular | #1F6A70 | Follicular day fill (white text) |
+| follicular | #25767D | Follicular day fill (white text) |
 | luteal | #B9A6E8 | Luteal day ring |
 | fertile | #8BE0D6 | Fertile window dot, logged-day dot |
 | estrogen | #FFC46B | Estrogen line |
@@ -155,7 +155,7 @@ The design assumes a fixed 28-day cycle with a 5-day period. **The app does not 
 | Cycle days | Phase | Tide name | Calendar style |
 | --- | --- | --- | --- |
 | 1–5 | Period | Low water | Coral fill if logged; dashed coral ring if predicted |
-| 6–12 | Follicular | Flood tide | Teal #1F6A70 fill, white number |
+| 6–12 | Follicular | Flood tide | Teal #25767D fill, white number |
 | 13–15 | Ovulation | High water | Cream fill, dark number |
 | 16–28 | Luteal | Ebb tide | 1.5 pt lavender #B9A6E8 ring |
 
@@ -168,7 +168,7 @@ Five pieces repeat across screens; build them once (e.g. `ui/components/`).
 
 - **Tab bar:** 76 tall, sky background, four equal columns: Home, Calendar, Logs, Profile. Each tab is a 24 pt line icon (1.8 stroke, round caps) over a 12 pt label, 3 pt apart, 8 pt top padding. Active tab: cream, label weight 600. Inactive: text-dim. Icons: Home = two stacked wavy lines; Calendar = rounded rectangle with two tabs on top; Logs = three lines with a dot before each; Profile = head and shoulders. Profile also has a 1 pt divider-sky line above the bar. Draw the icons as vector drawables or `ImageVector`s of your own.
 - **Wave divider:** a 390 × 16 water-coloured shape that turns the sky into the lower water panel on Calendar and Logs. SVG path: `M0 16V9C33 1 65 1 98 8S163 15 195 8 260 1 293 8 358 15 390 8V16Z` (scale horizontally to the screen width).
-- **Choice chip:** 44 tall, fully rounded, Figtree 15/500. Off: transparent with a 1 pt outline #4A7A8E and text colour. On: cream fill and border, sky text. Single-choice groups (Flow, Mood) sit in a 4-column grid with 6 pt gaps; multi-choice groups (Symptoms) wrap with 14 pt side padding per chip. Screen readers hear selected state.
+- **Choice chip:** 44 tall, fully rounded, Figtree 15/500. Off: transparent with a 1 pt outline #6493A7 and text colour. On: cream fill and border, sky text. Single-choice groups (Flow, Mood) sit in a 4-column grid with 6 pt gaps; multi-choice groups (Symptoms) wrap with 14 pt side padding per chip. Screen readers hear selected state.
 - **List row:** a 1 pt divider on top, 50–52 tall, label on the left, value or control on the right.
 - **Primary button:** 52 tall, full width, fully rounded, Figtree 17/600. Home's "Log today" is cream with sky text; Calendar's period button is described in the Calendar section.
 
@@ -267,7 +267,7 @@ Tapping when off sets flow to Medium; tapping when on clears the flow. The label
 Logs lists every logged day, one cycle at a time, newest first. View-only, except that tapping a row opens it on Calendar (D10).
 
 - **Title:** "Logs", Bricolage 34/600, top padding 60, sides 24.
-- **Cycle tabs:** a sideways-scrolling row 14 pt below the title, 8 pt gaps, bleeding to the screen edges. Each tab is 84 × 56, radius 16, with a 15/600 label over a 12 pt subline at 80% opacity. The first tab is "Current" / "Day 9"; older tabs show the start date and length, e.g. "3 Oct" / "28 days". Selected tab is cream with sky text; others are outlined #4A7A8E.
+- **Cycle tabs:** a sideways-scrolling row 14 pt below the title, 8 pt gaps, bleeding to the screen edges. Each tab is 84 × 56, radius 16, with a 15/600 label over a 12 pt subline at 80% opacity. The first tab is "Current" / "Day 9"; older tabs show the start date and length, e.g. "3 Oct" / "28 days". Selected tab is cream with sky text; others are outlined #6493A7.
 - **Wave divider** 16 pt below the tabs, then the water panel (scrolls, sides 24).
 - **Cycle heading:** the date range in Bricolage 22/600 ("31 Oct – today", "3 Oct – 30 Oct") and under it, 14 text-muted: "Day 9 so far · period 5 days · 5 days logged" or "28-day cycle · …".
 - **Day rows**, newest first, only days with something logged. Each row: divider-water on top, at least 64 tall, three columns:
