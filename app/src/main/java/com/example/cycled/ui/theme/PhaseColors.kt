@@ -15,7 +15,8 @@ import com.example.cycled.domain.Phase
  * - flow logged: [loggedFill] with the number in [onLoggedFill];
  * - predicted period: a dashed [predictedRing] with the number in [predictedNumber];
  * - otherwise the phase: [fill] (if any) and [ring] (if any), number in [number].
- * Then today gets a [todayRing] and the selected day sits on [selectedBackground].
+ * Then today gets a [todayRing] and the selected day sits on [selectedBackground]
+ * inside a [selectedBorder] (the fill alone is too close to sky to show selection).
  *
  * PhaseColorsTest checks every number against what it's drawn on (4.5:1) and every
  * ring, fill edge and dot that carries meaning against the backgrounds (3:1).
@@ -26,6 +27,8 @@ data class PhaseColors(
     val background: Color,
     /** Cell background for the selected day. */
     val selectedBackground: Color,
+    /** 1.5 dp border around the selected cell; the main selection indicator. */
+    val selectedBorder: Color,
     /** Fill for a day with flow logged. */
     val loggedFill: Color,
     val onLoggedFill: Color,
@@ -61,6 +64,7 @@ data class PhaseColors(
 fun phaseColorsFor(c: CycledColors): PhaseColors = PhaseColors(
     background = c.sky,
     selectedBackground = c.selectedCell,
+    selectedBorder = c.textMuted,
     loggedFill = c.period,
     onLoggedFill = c.sky,
     predictedRing = c.period,

@@ -126,7 +126,7 @@ The palette is a deep-night sky above lighter water, with one cream highlight an
 | divider-sky | #24414F | Row lines on sky |
 | divider-water | #2B5B70 | Row lines on water |
 | outline | #6493A7 | Unselected chip borders |
-| selected-cell | #1C4E64 | Selected calendar day background |
+| selected-cell | #1C4E64 | Selected calendar day background (with a text-muted border) |
 | period | #FF8A75 | Period days, Log period button, period dot |
 | period-light | #FFB3A5 | Predicted-period number, "Period logged" text |
 | follicular | #25767D | Follicular day fill (white text) |
@@ -243,7 +243,7 @@ Calendar is also the logging screen: the month grid sits on the sky, the selecte
 - Follicular phase → teal fill, white number.
 - Luteal phase → 1.5 pt lavender ring.
 
-Then: today gets a 2 pt cream ring (replacing any ring above); the selected day gets a #1C4E64 cell background. Screen readers hear e.g. "8 November, today, follicular phase, estimated fertile window, symptoms logged".
+Then: today gets a 2 pt cream ring (replacing any ring above); the selected day gets a #1C4E64 cell background and a 1.5 pt text-muted (#C4D5DB) border, both with radius 12. The fill alone is only 1.92:1 against sky, so the border is what shows the selection; today's cream ring on the circle stays as is. Screen readers hear e.g. "8 November, today, follicular phase, estimated fertile window, symptoms logged".
 
 **Log panel** for the selected day (defaults to today):
 

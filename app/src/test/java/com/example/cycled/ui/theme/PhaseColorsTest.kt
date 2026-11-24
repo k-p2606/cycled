@@ -97,6 +97,12 @@ class PhaseColorsTest {
     }
 
     @Test
+    fun selectedCellBorder_standsOutOnSky() {
+        assertEquals(CycledDarkColors.textMuted, colors.selectedBorder)
+        assertContrast("selected-cell border on sky", colors.selectedBorder, colors.background, 3f)
+    }
+
+    @Test
     fun chipOutline_standsOutOnWater() =
         assertContrast("chip outline on water", CycledDarkColors.outline, CycledDarkColors.water, 3f)
 }

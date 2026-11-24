@@ -281,8 +281,10 @@ private fun DayCell(mark: DayMark, selected: Boolean, locale: Locale, onClick: (
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(SelectedCellShape)
             .background(if (selected) colors.selectedCell else Color.Transparent)
+            // The fill is only 1.92:1 against sky, so the border carries the selection.
+            .then(if (selected) Modifier.border(1.5.dp, phaseColors.selectedBorder, SelectedCellShape) else Modifier)
             .selectable(selected = selected, onClick = onClick)
             .semantics { contentDescription = description },
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -327,6 +329,8 @@ private fun DayCell(mark: DayMark, selected: Boolean, locale: Locale, onClick: (
         }
     }
 }
+
+private val SelectedCellShape = RoundedCornerShape(12.dp)
 
 private fun Modifier.dashedCircle(color: Color, width: Dp = 1.5.dp): Modifier = drawBehind {
     val stroke = width.toPx()
