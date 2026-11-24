@@ -34,6 +34,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // BuildConfig.DEBUG gates the debug-only "Load sample data" row on Profile.
+        buildConfig = true
     }
     sourceSets {
         // Exported Room schemas, so MigrationTestHelper can build old versions.
@@ -58,6 +60,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
+    // Profile settings (name, averages, reminder switches).
+    implementation(libs.androidx.datastore.preferences)
     // Version alignment only, see libs.versions.toml.
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.androidx.room.runtime)

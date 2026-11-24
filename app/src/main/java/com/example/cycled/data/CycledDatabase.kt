@@ -9,11 +9,13 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [PeriodDay::class, DailyLog::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
     autoMigrations = [
         // 1 -> 2: adds period_days.loggedAt (existing rows get 0).
         AutoMigration(from = 1, to = 2),
+        // 2 -> 3: adds daily_logs.noFlow (existing rows get false).
+        AutoMigration(from = 2, to = 3),
     ],
 )
 @TypeConverters(Converters::class)

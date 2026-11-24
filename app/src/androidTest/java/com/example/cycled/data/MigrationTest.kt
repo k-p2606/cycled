@@ -45,4 +45,40 @@ class MigrationTest {
         }
         db.close()
     }
+
+    @Test
+    fun migrate2To3_keepsDailyLogAndSetsNoFlowToFalse() {
+        val date = LocalDate.of(2026, 11, 8)
+
+        helper.createDatabase(testDb, 2).apply {
+            execSQL(
+                "INSERT INTO daily_logs (date, symptoms, mood, note) VALUES (?, ?, ?, ?)",
+                arrayOf<Any>(date.toEpochDay(), "CRAMPS,FATIGUE", Mood.LOW.name, "note"),
+            )
+            execSQL(
+                "INSERT INTO period_days (date, flow, loggedAt) VALUES (?, ?, ?)",
+                arrayOf<Any>(date.toEpochDay(), FlowLevel.HEAVY.name, 1_234L),
+            )
+            close()
+        }
+
+        // Runs the AutoMigration and validates the result against schemas/3.json.
+        val db = helper.runMigrationsAndValidate(testDb, 3, true)
+
+        db.query("SELECT date, symptoms, mood, note, noFlow FROM daily_logs").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(date.toEpochDay(), cursor.getLong(0))
+            assertEquals("CRAMPS,FATIGUE", cursor.getString(1))
+            assertEquals(Mood.LOW.name, cursor.getString(2))
+            assertEquals("note", cursor.getString(3))
+            assertEquals(0, cursor.getInt(4))
+            assertEquals(1, cursor.count)
+        }
+        db.query("SELECT date, flow, loggedAt FROM period_days").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(FlowLevel.HEAVY.name, cursor.getString(1))
+            assertEquals(1_234L, cursor.getLong(2))
+        }
+        db.close()
+    }
 }

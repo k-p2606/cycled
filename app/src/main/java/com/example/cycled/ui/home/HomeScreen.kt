@@ -1,346 +1,337 @@
 package com.example.cycled.ui.home
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import android.content.res.Configuration
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.cycled.domain.AverageCyclePredictor
-import com.example.cycled.domain.CycleStatus
-import com.example.cycled.domain.Period
-import com.example.cycled.domain.Phase
-import com.example.cycled.ui.CycleMessages
+import com.example.cycled.domain.TideModel
+import com.example.cycled.ui.ComingUpKind
+import com.example.cycled.ui.ComingUpRow
 import com.example.cycled.ui.CycleViewModel
 import com.example.cycled.ui.HomeUiState
+import com.example.cycled.ui.SampleData
 import com.example.cycled.ui.buildHomeState
-import com.example.cycled.ui.displayName
-import com.example.cycled.ui.phaseBarModel
+import com.example.cycled.ui.components.ListRow
+import com.example.cycled.ui.components.PrimaryButton
+import com.example.cycled.ui.components.TopThenFill
+import com.example.cycled.ui.components.screenTopPadding
 import com.example.cycled.ui.theme.CycledTheme
+import com.example.cycled.ui.theme.cycledColors
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 @Composable
-fun HomeRoute(viewModel: CycleViewModel, onLogClick: () -> Unit, onCalendarClick: () -> Unit) {
+fun HomeRoute(viewModel: CycleViewModel, onLogTodayClick: () -> Unit, modifier: Modifier = Modifier) {
     val state by viewModel.homeState.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onLogClick = onLogClick, onCalendarClick = onCalendarClick)
+    HomeScreen(state = state, today = viewModel.today(), onLogTodayClick = onLogTodayClick, modifier = modifier)
 }
 
+/**
+ * Home (handoff "Home"): today's cycle day and moon on the sky, the cycle drawn as a
+ * tide, then a water panel with the hormone key, three coming-up dates, the likely
+ * range and disclaimer, and "Log today". Scrolls when the screen is too short; when it
+ * isn't, the water panel stretches to the bottom and spreads its items out.
+ *
+ * [today] is used for the date line when there's no forecast; with one, it's the
+ * state's own date.
+ */
 @Composable
 fun HomeScreen(
     state: HomeUiState,
-    onLogClick: () -> Unit,
-    onCalendarClick: () -> Unit,
+    today: LocalDate,
+    onLogTodayClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(modifier = modifier) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("Cycled", style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(32.dp))
-
-            when (state) {
-                HomeUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                }
-
-                HomeUiState.NoData -> {
-                    Text("No periods logged yet", style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        "Log your last period to see where you are in your cycle.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    HomeActions(onLogClick = onLogClick, onCalendarClick = onCalendarClick)
-                }
-
-                is HomeUiState.Ready -> {
-                    ReadyContent(state.status)
-                    Spacer(Modifier.height(16.dp))
-                    NextPeriodCard(state)
-                    CurrentPhaseCard(state)
-                    Text(
-                        CycleMessages.ESTIMATES_DISCLAIMER,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    HomeActions(onLogClick = onLogClick, onCalendarClick = onCalendarClick)
-                }
-            }
-        }
+    val colors = MaterialTheme.cycledColors
+    if (state == HomeUiState.Loading) {
+        Box(modifier.fillMaxSize().background(colors.sky))
+        return
     }
-}
+    val ready = state as? HomeUiState.Ready
+    val locale = Locale.getDefault()
 
-@Composable
-private fun ReadyContent(status: CycleStatus) {
-    Text("Day ${status.cycleDay}", style = MaterialTheme.typography.displayLarge)
-
-    val period = status.lastPeriod
-    if (status.onPeriod) {
-        Text("Period · day ${status.periodDay}", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(16.dp))
-        Text(
-            "Period started ${period.start.format(DateFormatter)}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    } else {
-        Text("of your cycle", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(16.dp))
-        Text(
-            "Last period: ${period.start.format(DateFormatter)} – " +
-                "${period.end.format(DateFormatter)} · ${daysLabel(period.lengthDays)}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
+    BoxWithConstraints(modifier.fillMaxSize().background(colors.water)) {
+        val viewportHeight = constraints.maxHeight
+        TopThenFill(
+            viewportHeight = viewportHeight,
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            top = { SkyPart(ready, ready?.today ?: today, locale) },
+            bottom = { WaterPanel(ready, locale, onLogTodayClick) },
         )
     }
 }
 
 @Composable
-private fun NextPeriodCard(state: HomeUiState.Ready) {
-    val prediction = state.prediction
-    val today = state.today
-    val range = "Likely between ${prediction.earliest.format(DateFormatter)} and " +
-        prediction.latest.format(DateFormatter)
-
-    val (headline, detail) = when {
-        state.isLate ->
-            CycleMessages.PERIOD_MAY_BE_LATE to "Expected around ${prediction.nextStart.format(DateFormatter)}"
-        today == prediction.nextStart ->
-            "Expected today" to range
-        else -> {
-            val daysUntil = ChronoUnit.DAYS.between(today, prediction.nextStart).toInt()
-            "Around ${prediction.nextStart.format(DateFormatter)}" to "$range · in ${daysLabel(daysUntil)}"
+private fun SkyPart(state: HomeUiState.Ready?, today: LocalDate, locale: Locale) {
+    val colors = MaterialTheme.cycledColors
+    val tide = remember(state?.cycleLengthDays, state?.ovulationCycleDay) {
+        if (state != null) {
+            TideModel(state.cycleLengthDays, state.ovulationCycleDay)
+        } else {
+            TideModel(HomeUiState.NO_DATA_CYCLE_LENGTH, HomeUiState.NO_DATA_OVULATION_DAY)
         }
     }
 
-    val basis = when (prediction.basedOnCycles) {
-        0 -> CycleMessages.placeholderBasis(state.cycleLengthDays)
-        1 -> "Based on your last cycle"
-        else -> "Based on your last ${prediction.basedOnCycles} cycles"
-    }
-
-    InfoCard(label = "Next period", headline = headline, detail = detail, footnote = basis)
-}
-
-@Composable
-private fun CurrentPhaseCard(state: HomeUiState.Ready) {
-    val phase = state.currentPhase ?: return
-    val range = state.phases.ranges.firstOrNull { it.phase == phase }
-    val barModel = remember(state.phases, state.today) { phaseBarModel(state.phases, state.today) }
-
-    InfoCard(
-        label = "Current phase",
-        headline = phase.displayName,
-        detail = range?.let { "${it.start.format(DateFormatter)} – ${it.end.format(DateFormatter)}" },
-        footnote = phase.description,
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(colors.sky)
+            .screenTopPadding(),
     ) {
-        // Hidden when there's no model (late or before the cycle); the text above still shows.
-        if (barModel != null) PhaseBar(barModel, modifier = Modifier.padding(top = 12.dp))
+        Column(Modifier.padding(horizontal = 24.dp)) {
+            Text(
+                HomeFormat.dateLine(today, locale),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textDim,
+            )
+            Hero(state, locale)
+        }
+        Spacer(Modifier.height(8.dp))
+        TideDrawing(
+            tide = tide,
+            markerDay = state?.markerCycleDay,
+            phaseDays = state?.phaseDays.orEmpty(),
+        )
     }
 }
 
-/** Today, worked out from the status so this screen never reads the clock. */
-private val HomeUiState.Ready.today: LocalDate
-    get() = status.lastPeriod.start.plusDays(status.cycleDay - 1L)
-
+/** Cycle day + moon, tide name and subline, read out as one line. */
 @Composable
-private fun InfoCard(
-    label: String,
-    headline: String,
-    detail: String?,
-    footnote: String,
-    extra: (@Composable () -> Unit)? = null,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(headline, style = MaterialTheme.typography.titleLarge)
-            if (detail != null) {
-                Text(detail, style = MaterialTheme.typography.bodyLarge)
+private fun Hero(state: HomeUiState.Ready?, locale: Locale) {
+    val colors = MaterialTheme.cycledColors
+    val dayText = state?.status?.cycleDay?.toString() ?: "–"
+    val title = state?.tideName ?: "Log your first period"
+    val spoken = if (state != null) {
+        HomeFormat.heroSpoken(state.status.cycleDay, state.tideName, state.phaseSubline, locale)
+    } else {
+        "No cycle day yet. Log your first period"
+    }
+
+    Column(Modifier.clearAndSetSemantics { contentDescription = spoken }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text("Cycle day", style = MaterialTheme.typography.bodyMedium, color = colors.textDim)
+                Text(dayText, style = MaterialTheme.typography.displayLarge, color = colors.cream)
             }
-            Text(
-                footnote,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            extra?.invoke()
+            // The moon takes what's left, up to 164 dp, so a big day number at large font still fits.
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                Moon(
+                    phase = state?.moonPhase ?: 0.0,
+                    modifier = Modifier
+                        .widthIn(max = 164.dp)
+                        .fillMaxWidth()
+                        .aspectRatio(1f),
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(title, style = MaterialTheme.typography.headlineLarge, color = colors.text)
+        if (state != null) {
+            Text(state.phaseSubline, style = MaterialTheme.typography.bodyLarge, color = colors.textMuted)
         }
     }
 }
 
-private val Phase.description: String
-    get() = when (this) {
-        Phase.MENSTRUAL -> "Your period"
-        Phase.FOLLICULAR -> "After your period, before ovulation"
-        Phase.OVULATORY -> "Around your estimated ovulation"
-        Phase.LUTEAL -> "After ovulation, before your next period"
-    }
-
 @Composable
-private fun HomeActions(onLogClick: () -> Unit, onCalendarClick: () -> Unit) {
-    Spacer(Modifier.height(24.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = onLogClick) { Text("Log period") }
-        Button(onClick = onCalendarClick) { Text("Calendar") }
+private fun WaterPanel(state: HomeUiState.Ready?, locale: Locale, onLogTodayClick: () -> Unit) {
+    val colors = MaterialTheme.cycledColors
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(colors.water)
+            .padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 18.dp),
+        verticalArrangement = EvenlyWithMinGap,
+    ) {
+        HormoneKey()
+        if (state != null) {
+            Column {
+                state.comingUp.forEach { ComingUpListRow(it, locale) }
+            }
+            Text(
+                HomeFormat.rangeLine(state.likelyRange, locale),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textMuted,
+            )
+        }
+        PrimaryButton(text = "Log today", onClick = onLogTodayClick)
     }
 }
 
-private fun daysLabel(days: Int): String = if (days == 1) "1 day" else "$days days"
+/** Spreads items evenly (gaps above, between and below) but never closer than 14 dp. */
+private val EvenlyWithMinGap = object : Arrangement.Vertical {
+    override val spacing = 14.dp
 
-/** "Nov 1" in the device's default locale. */
-private val DateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
-
-@Preview(showBackground = true)
-@Composable
-private fun HomeScreenLoadingPreview() {
-    CycledTheme {
-        HomeScreen(state = HomeUiState.Loading, onLogClick = {}, onCalendarClick = {})
+    override fun Density.arrange(totalSize: Int, sizes: IntArray, outPositions: IntArray) {
+        if (sizes.isEmpty()) return
+        val minGap = spacing.roundToPx()
+        val free = totalSize - sizes.sum()
+        val gap = maxOf(minGap, free / (sizes.size + 1))
+        var y = ((free - gap * (sizes.size - 1)) / 2).coerceAtLeast(0)
+        sizes.forEachIndexed { i, size ->
+            outPositions[i] = y
+            y += size + gap
+        }
     }
 }
 
-@Preview(showBackground = true)
+/** Swatches for the three lines, with "Typical pattern" pushed right (D8). */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HomeScreenNoDataPreview() {
-    CycledTheme {
-        HomeScreen(state = HomeUiState.NoData, onLogClick = {}, onCalendarClick = {})
+private fun HormoneKey() {
+    val colors = MaterialTheme.cycledColors
+    FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = "Lines show a typical hormone pattern, not your levels: " +
+                    "estrogen, progesterone and LH"
+            },
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        KeyItem("Estrogen") { LineSwatch(colors.estrogen) }
+        KeyItem("Progesterone") { LineSwatch(colors.progesterone) }
+        KeyItem("LH") { LineSwatch(colors.text, dashed = true) }
+        Text(
+            "Typical pattern",
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textMuted,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
-@Preview(showBackground = true, heightDp = 1100)
 @Composable
-private fun HomeScreenMidCyclePreview() {
-    val state = buildHomeState(
-        periods = listOf(Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5))),
-        today = LocalDate.of(2026, 11, 13),
-        predictor = AverageCyclePredictor(),
-    )
-    CycledTheme {
-        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
+private fun KeyItem(label: String, swatch: @Composable () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        swatch()
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.cycledColors.textMuted)
     }
 }
 
-/** A menstrual-phase day: the period started today-2 and may still be going. */
-@Preview(showBackground = true, heightDp = 1100)
 @Composable
-private fun HomeScreenOnPeriodPreview() {
-    val state = buildHomeState(
-        periods = listOf(Period(LocalDate.of(2026, 11, 11), LocalDate.of(2026, 11, 13))),
-        today = LocalDate.of(2026, 11, 13),
-        predictor = AverageCyclePredictor(),
-    )
-    CycledTheme {
-        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
+private fun LineSwatch(color: Color, dashed: Boolean = false) {
+    Canvas(Modifier.size(width = 16.dp, height = 2.dp)) {
+        drawLine(
+            color,
+            start = Offset(0f, size.height / 2),
+            end = Offset(size.width, size.height / 2),
+            strokeWidth = size.height,
+            pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx())) else null,
+        )
     }
 }
 
-@Preview(showBackground = true, heightDp = 900)
 @Composable
-private fun HomeScreenPlaceholderPredictionPreview() {
-    val state = buildHomeState(
-        periods = listOf(Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5))),
-        today = LocalDate.of(2026, 11, 13),
-        predictor = AverageCyclePredictor(),
-    )
-    CycledTheme {
-        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
+private fun ComingUpListRow(row: ComingUpRow, locale: Locale) {
+    val colors = MaterialTheme.cycledColors
+    val dot = when (row.kind) {
+        ComingUpKind.NEXT_PERIOD -> colors.period
+        ComingUpKind.FERTILE_WINDOW -> colors.fertile
+        ComingUpKind.HIGH_TIDE -> colors.cream
+    }
+    val spoken = HomeFormat.rowSpoken(row, locale)
+    ListRow(
+        label = HomeFormat.rowLabel(row.kind),
+        dividerColor = colors.dividerWater,
+        minHeight = 50.dp,
+        modifier = Modifier.clearAndSetSemantics { contentDescription = spoken },
+        leading = { Box(Modifier.size(9.dp).background(dot, CircleShape)) },
+    ) {
+        Text(HomeFormat.rowDate(row, locale), style = MaterialTheme.typography.bodyMedium, color = colors.text)
+        Text(
+            row.until,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (row.isPassed) FontWeight.Normal else FontWeight.SemiBold,
+            color = if (row.isPassed) colors.textMuted else colors.cream,
+        )
     }
 }
 
-@Preview(showBackground = true, heightDp = 900)
+// ---- Previews: the handoff's sample history (D12) with the rule-based predictor ----
+
+private fun sampleState(today: LocalDate) = buildHomeState(SampleData.periods, today, AverageCyclePredictor())
+
 @Composable
-private fun HomeScreenOwnDataPreview() {
-    val state = buildHomeState(
-        periods = listOf(
-            Period(LocalDate.of(2026, 10, 3), LocalDate.of(2026, 10, 7)),
-            Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5)),
-        ),
-        today = LocalDate.of(2026, 11, 13),
-        predictor = AverageCyclePredictor(),
-    )
-    CycledTheme {
-        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
-    }
+private fun PreviewHome(state: HomeUiState, today: LocalDate) {
+    CycledTheme { HomeScreen(state = state, today = today, onLogTodayClick = {}) }
 }
 
-@Preview(showBackground = true, heightDp = 900)
+/** Sun 8 Nov: cycle day 9, flood tide (the design's screenshot). */
+@Preview(widthDp = 390, heightDp = 768)
 @Composable
-private fun HomeScreenLatePreview() {
-    val state = buildHomeState(
-        periods = listOf(Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5))),
-        today = LocalDate.of(2026, 12, 2),
-        predictor = AverageCyclePredictor(),
-    )
-    CycledTheme {
-        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
-    }
+private fun HomeSampleDay9Preview() = PreviewHome(sampleState(SampleData.today), SampleData.today)
+
+/** Sat 14 Nov: predicted ovulation, high water, full moon. */
+@Preview(widthDp = 390, heightDp = 768)
+@Composable
+private fun HomeOvulationDayPreview() {
+    val today = LocalDate.of(2026, 11, 14)
+    PreviewHome(sampleState(today), today)
 }
 
-/** 20-day cycles: ovulation lands right after the period, so there's no follicular segment. */
-@Preview(showBackground = true, heightDp = 1100)
+/** Fri 20 Nov: luteal, ebb tide; fertile window and high tide passed. */
+@Preview(widthDp = 390, heightDp = 768)
 @Composable
-private fun HomeScreenShortCyclePreview() {
-    val state = buildHomeState(
-        periods = listOf(
-            Period(LocalDate.of(2026, 10, 12), LocalDate.of(2026, 10, 16)),
-            Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5)),
-        ),
-        today = LocalDate.of(2026, 11, 7),
-        predictor = AverageCyclePredictor(),
-    )
-    CycledTheme {
-        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
-    }
+private fun HomeLutealPreview() {
+    val today = LocalDate.of(2026, 11, 20)
+    PreviewHome(sampleState(today), today)
 }
 
-@Preview(showBackground = true, heightDp = 1100, uiMode = Configuration.UI_MODE_NIGHT_YES)
+/** Wed 2 Dec: predicted 28 Nov, so late: slack water, new moon, marker at the end. */
+@Preview(widthDp = 390, heightDp = 768)
 @Composable
-private fun HomeScreenMidCycleDarkPreview() {
-    val state = buildHomeState(
-        periods = listOf(Period(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 5))),
-        today = LocalDate.of(2026, 11, 13),
-        predictor = AverageCyclePredictor(),
-    )
-    CycledTheme(darkTheme = true, dynamicColor = false) {
-        HomeScreen(state = state, onLogClick = {}, onCalendarClick = {})
-    }
+private fun HomeLatePreview() {
+    val today = LocalDate.of(2026, 12, 2)
+    PreviewHome(sampleState(today), today)
 }
+
+@Preview(widthDp = 390, heightDp = 768)
+@Composable
+private fun HomeNoDataPreview() = PreviewHome(HomeUiState.NoData, SampleData.today)
+
+/** Narrow phone at 1.3× font: the moon shrinks to fit and the screen scrolls. */
+@Preview(widthDp = 360, heightDp = 720, fontScale = 1.3f)
+@Composable
+private fun HomeNarrowLargeFontPreview() = PreviewHome(sampleState(SampleData.today), SampleData.today)
+
+/** The whole page at 360 dp and 1.3× font, unclipped. */
+@Preview(widthDp = 360, heightDp = 1200, fontScale = 1.3f)
+@Composable
+private fun HomeNarrowLargeFontFullPreview() = PreviewHome(sampleState(SampleData.today), SampleData.today)
