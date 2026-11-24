@@ -65,7 +65,12 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 
 @Composable
-fun CalendarRoute(viewModel: CycleViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun CalendarRoute(
+    viewModel: CycleViewModel,
+    onBack: () -> Unit,
+    onLogClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val state by viewModel.calendarState.collectAsStateWithLifecycle()
     val firstDayOfWeek = remember { WeekFields.of(Locale.getDefault()).firstDayOfWeek }
     // YearMonth is Serializable, so the default saver can put it in the Bundle.
@@ -78,6 +83,7 @@ fun CalendarRoute(viewModel: CycleViewModel, onBack: () -> Unit, modifier: Modif
         onPreviousMonth = { month = month.minusMonths(1) },
         onNextMonth = { month = month.plusMonths(1) },
         onBack = onBack,
+        onLogClick = onLogClick,
         modifier = modifier,
     )
 }
@@ -91,6 +97,7 @@ fun CalendarScreen(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onBack: () -> Unit,
+    onLogClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val locale = Locale.getDefault()
@@ -103,6 +110,8 @@ fun CalendarScreen(
             TopAppBar(
                 title = { Text("Calendar") },
                 navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+                // Temporary: the old Log screen, until logging moves into Calendar (D6).
+                actions = { TextButton(onClick = onLogClick) { Text("Log period") } },
             )
         },
     ) { innerPadding ->
@@ -375,6 +384,7 @@ private fun PreviewCalendar(month: YearMonth, state: CalendarUiState) {
             onPreviousMonth = {},
             onNextMonth = {},
             onBack = {},
+            onLogClick = {},
         )
     }
 }

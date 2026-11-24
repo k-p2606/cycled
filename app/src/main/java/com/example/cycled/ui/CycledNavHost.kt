@@ -35,7 +35,7 @@ object CycledDestinations {
     const val LOGS = "logs"
     const val PROFILE = "profile"
 
-    /** The old Log screen, opened from Home. Goes away once Calendar logging works (D6). */
+    /** The old Log screen, opened from Calendar for now. Goes away once Calendar logging works (D6). */
     const val LOG = "log"
 }
 
@@ -49,12 +49,12 @@ enum class TopLevelTab(val route: String, val label: String, val icon: ImageVect
 
     companion object {
         /**
-         * The tab [destination] belongs to. Screens outside the tabs (the old Log screen,
-         * opened from Home) count as Home.
+         * The tab [destination] belongs to. The old Log screen (opened from Calendar for
+         * now) counts as Calendar; anything else unknown as Home.
          */
         fun of(destination: NavDestination?): TopLevelTab =
             entries.firstOrNull { tab -> destination?.hierarchy?.any { it.route == tab.route } == true }
-                ?: HOME
+                ?: if (destination?.route == CycledDestinations.LOG) CALENDAR else HOME
     }
 }
 
@@ -131,14 +131,17 @@ fun CycledNavHost(
         composable(CycledDestinations.HOME) {
             HomeRoute(
                 viewModel = viewModel,
-                onLogClick = {
-                    navController.navigate(CycledDestinations.LOG) { launchSingleTop = true }
-                },
-                onCalendarClick = { navController.navigateToTab(TopLevelTab.CALENDAR) },
+                // "Log today" opens Calendar, where logging will live (D6).
+                onLogTodayClick = { navController.navigateToTab(TopLevelTab.CALENDAR) },
             )
         }
         composable(CycledDestinations.CALENDAR) {
-            CalendarRoute(viewModel = viewModel, onBack = dropUnlessResumed { navController.popBackStack() })
+            CalendarRoute(
+                viewModel = viewModel,
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                // Temporary way into the old Log screen until Calendar logging exists.
+                onLogClick = { navController.navigate(CycledDestinations.LOG) { launchSingleTop = true } },
+            )
         }
         composable(CycledDestinations.LOGS) {
             LogsRoute()

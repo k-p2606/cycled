@@ -18,6 +18,12 @@ object CycleMessages {
     /** Calendar legend note when the prediction is not based on the user's cycles yet. */
     fun placeholderNote(cycleLengthDays: Int) = "Predictions use ${placeholderCycle(cycleLengthDays)}."
 
+    /** Home's subline on the predicted start day itself (no phase, not late yet). */
+    const val PERIOD_EXPECTED_TODAY = "Your period is expected today"
+
+    /** Home's line under the coming-up rows, after "Likely <earliest> – <latest>. " (D4). */
+    const val HOME_DISCLAIMER = "Estimates from your logged dates, not contraception or medical advice."
+
     const val ESTIMATES_DISCLAIMER =
         "Estimates based on your logged dates. Not medical advice or contraception."
 }

@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,7 +16,7 @@ import com.example.cycled.ui.theme.CycledTheme
 import com.example.cycled.ui.theme.cycledColors
 
 /**
- * A sky screen with just its title (Bricolage 34/600, top 60, sides 24), for tabs
+ * A sky screen with just its title (Bricolage 34/600, top 60 incl. status bar, sides 24), for tabs
  * that aren't built yet.
  */
 @Composable
@@ -26,8 +25,8 @@ fun PlaceholderTitleScreen(title: String, modifier: Modifier = Modifier) {
         modifier
             .fillMaxSize()
             .background(MaterialTheme.cycledColors.sky)
-            .statusBarsPadding()
-            .padding(top = 60.dp, start = 24.dp, end = 24.dp),
+            .screenTopPadding()
+            .padding(horizontal = 24.dp),
     ) {
         Text(
             text = title,
