@@ -78,6 +78,17 @@ class CycleViewModel(
             buildCalendarState(emptyMap(), emptyList(), today(), predictor, selected = selectedDate.value),
         )
 
+    /** Logs' cycles, recalculated whenever any day's flow, symptoms or mood changes. */
+    val logsState: StateFlow<LogsUiState> =
+        combine(repository.observePeriodDays(), repository.observeAllLogs()) { days, logs ->
+            buildLogsState(
+                periods = groupIntoPeriods(days.map { it.date }),
+                periodDays = days.associate { it.date to it.flow },
+                dailyLogs = logs.associateBy { it.date },
+                today = today(),
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LogsUiState.Loading)
+
     /** Shows [date] in Calendar's log panel. */
     fun selectDate(date: LocalDate) {
         savedState[KEY_SELECTED_DAY] = date.toEpochDay()

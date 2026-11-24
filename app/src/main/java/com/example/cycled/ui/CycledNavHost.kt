@@ -163,7 +163,8 @@ fun CycledNavHost(
             CalendarRoute(viewModel = viewModel, openDate = openDate)
         }
         composable(CycledDestinations.LOGS) {
-            LogsRoute()
+            // Tapping a day opens it on Calendar (D10).
+            LogsRoute(viewModel = viewModel, onOpenDay = { navController.openCalendarOn(it) })
         }
         composable(CycledDestinations.PROFILE) {
             ProfileRoute()
