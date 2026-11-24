@@ -30,13 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,6 +48,7 @@ import com.example.cycled.ui.SampleData
 import com.example.cycled.ui.buildHomeState
 import com.example.cycled.ui.components.ListRow
 import com.example.cycled.ui.components.PrimaryButton
+import com.example.cycled.ui.components.TopThenFill
 import com.example.cycled.ui.components.screenTopPadding
 import com.example.cycled.ui.theme.CycledTheme
 import com.example.cycled.ui.theme.cycledColors
@@ -94,29 +93,6 @@ fun HomeScreen(
             top = { SkyPart(ready, ready?.today ?: today, locale) },
             bottom = { WaterPanel(ready, locale, onLogTodayClick) },
         )
-    }
-}
-
-/** Places [top], then [bottom] stretched to at least the rest of the viewport. */
-@Composable
-private fun TopThenFill(
-    viewportHeight: Int,
-    modifier: Modifier,
-    top: @Composable () -> Unit,
-    bottom: @Composable () -> Unit,
-) {
-    Layout(contents = listOf(top, bottom), modifier = modifier) { (topParts, bottomParts), constraints ->
-        val width = constraints.maxWidth
-        val topPlaced = topParts.map { it.measure(Constraints(minWidth = width, maxWidth = width)) }
-        val topHeight = topPlaced.sumOf { it.height }
-        val fill = (viewportHeight - topHeight).coerceAtLeast(0)
-        val bottomPlaced = bottomParts.map {
-            it.measure(Constraints(minWidth = width, maxWidth = width, minHeight = fill))
-        }
-        layout(width, topHeight + bottomPlaced.sumOf { it.height }) {
-            var y = 0
-            (topPlaced + bottomPlaced).forEach { it.place(0, y); y += it.height }
-        }
     }
 }
 

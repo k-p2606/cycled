@@ -9,24 +9,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.cycled.ui.calendar.CalendarRoute
 import com.example.cycled.ui.components.CycledIcons
 import com.example.cycled.ui.components.TabBar
 import com.example.cycled.ui.components.TabBarItem
 import com.example.cycled.ui.home.HomeRoute
-import com.example.cycled.ui.log.LogRoute
 import com.example.cycled.ui.logs.LogsRoute
 import com.example.cycled.ui.profile.ProfileRoute
 import com.example.cycled.ui.theme.cycledColors
+import java.time.LocalDate
 
 /** Route names for every screen in the app. */
 object CycledDestinations {
@@ -35,26 +36,26 @@ object CycledDestinations {
     const val LOGS = "logs"
     const val PROFILE = "profile"
 
-    /** The old Log screen, opened from Calendar for now. Goes away once Calendar logging works (D6). */
-    const val LOG = "log"
+    /** Calendar's optional argument: an ISO date (2026-11-08) to open with that day selected. */
+    const val CALENDAR_DATE_ARG = "date"
+    const val CALENDAR_PATTERN = "$CALENDAR?$CALENDAR_DATE_ARG={$CALENDAR_DATE_ARG}"
 }
 
-/** The four tabs in the bottom bar, in order. */
-enum class TopLevelTab(val route: String, val label: String, val icon: ImageVector) {
-    HOME(CycledDestinations.HOME, "Home", CycledIcons.Home),
-    CALENDAR(CycledDestinations.CALENDAR, "Calendar", CycledIcons.Calendar),
-    LOGS(CycledDestinations.LOGS, "Logs", CycledIcons.Logs),
-    PROFILE(CycledDestinations.PROFILE, "Profile", CycledIcons.Profile),
+/**
+ * The four tabs in the bottom bar, in order. [route] is what to navigate to; [pattern]
+ * is the destination's route as registered (Calendar's includes its optional date).
+ */
+enum class TopLevelTab(val route: String, val pattern: String, val label: String, val icon: ImageVector) {
+    HOME(CycledDestinations.HOME, CycledDestinations.HOME, "Home", CycledIcons.Home),
+    CALENDAR(CycledDestinations.CALENDAR, CycledDestinations.CALENDAR_PATTERN, "Calendar", CycledIcons.Calendar),
+    LOGS(CycledDestinations.LOGS, CycledDestinations.LOGS, "Logs", CycledIcons.Logs),
+    PROFILE(CycledDestinations.PROFILE, CycledDestinations.PROFILE, "Profile", CycledIcons.Profile),
     ;
 
     companion object {
-        /**
-         * The tab [destination] belongs to. The old Log screen (opened from Calendar for
-         * now) counts as Calendar; anything else unknown as Home.
-         */
+        /** The tab [destination] belongs to; Home if none matches. */
         fun of(destination: NavDestination?): TopLevelTab =
-            entries.firstOrNull { tab -> destination?.hierarchy?.any { it.route == tab.route } == true }
-                ?: if (destination?.route == CycledDestinations.LOG) CALENDAR else HOME
+            entries.firstOrNull { tab -> destination?.hierarchy?.any { it.route == tab.pattern } == true } ?: HOME
     }
 }
 
@@ -82,7 +83,7 @@ fun CycledApp(
                     val tab = TopLevelTab.entries[index]
                     if (tab == currentTab) {
                         // Re-tapping the current tab goes back to its first screen.
-                        navController.popBackStack(tab.route, inclusive = false)
+                        navController.popBackStack(tab.pattern, inclusive = false)
                     } else {
                         navController.navigateToTab(tab)
                     }
@@ -114,8 +115,20 @@ fun NavHostController.navigateToTab(tab: TopLevelTab) {
 }
 
 /**
- * The app's screens. All of them get the same [viewModel], so a day saved on Log
- * shows on Home and Calendar as soon as you go back.
+ * Opens the Calendar tab on [date], selected. Like a tab switch it saves the tab being
+ * left, but it starts Calendar fresh rather than restoring it: a restored entry would
+ * keep its old arguments and ignore [date].
+ */
+fun NavHostController.openCalendarOn(date: LocalDate) {
+    navigate("${CycledDestinations.CALENDAR}?${CycledDestinations.CALENDAR_DATE_ARG}=$date") {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+    }
+}
+
+/**
+ * The app's screens. All of them get the same [viewModel], so a day logged on Calendar
+ * shows on Home as soon as you go back.
  */
 @Composable
 fun CycledNavHost(
@@ -131,26 +144,29 @@ fun CycledNavHost(
         composable(CycledDestinations.HOME) {
             HomeRoute(
                 viewModel = viewModel,
-                // "Log today" opens Calendar, where logging will live (D6).
-                onLogTodayClick = { navController.navigateToTab(TopLevelTab.CALENDAR) },
+                // "Log today" opens Calendar with today selected (D6).
+                onLogTodayClick = { navController.openCalendarOn(viewModel.today()) },
             )
         }
-        composable(CycledDestinations.CALENDAR) {
-            CalendarRoute(
-                viewModel = viewModel,
-                onBack = dropUnlessResumed { navController.popBackStack() },
-                // Temporary way into the old Log screen until Calendar logging exists.
-                onLogClick = { navController.navigate(CycledDestinations.LOG) { launchSingleTop = true } },
-            )
+        composable(
+            CycledDestinations.CALENDAR_PATTERN,
+            arguments = listOf(
+                navArgument(CycledDestinations.CALENDAR_DATE_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { entry ->
+            val openDate = entry.arguments?.getString(CycledDestinations.CALENDAR_DATE_ARG)
+                ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            CalendarRoute(viewModel = viewModel, openDate = openDate)
         }
         composable(CycledDestinations.LOGS) {
             LogsRoute()
         }
         composable(CycledDestinations.PROFILE) {
             ProfileRoute()
-        }
-        composable(CycledDestinations.LOG) {
-            LogRoute(viewModel = viewModel, onBack = dropUnlessResumed { navController.popBackStack() })
         }
     }
 }

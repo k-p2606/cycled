@@ -46,12 +46,12 @@ val BricolageTitle = bricolage(32f)
 /** Bricolage Grotesque for section titles and other headings (21-28). */
 val BricolageHeading = bricolage(22f)
 
-/** Figtree for everything else, 400/500/600. */
+/** Figtree for everything else, 400/500/600 (700 for today on Calendar). */
 val Figtree = figtree()
 
 @OptIn(ExperimentalTextApi::class)
 private fun figtree() = FontFamily(
-    listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold).map { weight ->
+    listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold).map { weight ->
         Font(
             R.font.figtree,
             weight = weight,

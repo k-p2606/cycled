@@ -1,6 +1,9 @@
 package com.example.cycled.ui
 
+import com.example.cycled.data.DailyLog
 import com.example.cycled.data.FlowLevel
+import com.example.cycled.data.Mood
+import com.example.cycled.data.Symptom
 import com.example.cycled.domain.AverageCyclePredictor
 import com.example.cycled.domain.CycleDefaults
 import com.example.cycled.domain.Phase
@@ -206,5 +209,71 @@ class DayMarkTest {
         assertEquals(home.phases, calendar.forecast!!.phases)
         assertEquals(home.currentPhase, mark(d(11, 13)).phase)
         assertTrue(mark(d(11, 13)).isToday)
+    }
+
+    // ---- Redesign: day style order (first match wins) and the logged dot (D5, D7) ----
+
+    private fun log(date: LocalDate, noFlow: Boolean = false, symptoms: Set<Symptom> = emptySet(), mood: Mood? = null) =
+        date to DailyLog(date, symptoms = symptoms, mood = mood, noFlow = noFlow)
+
+    private fun stateWithLogs(logs: Map<LocalDate, DailyLog>, logged: Map<LocalDate, FlowLevel> = twoPeriods) =
+        buildCalendarState(logged, groupIntoPeriods(logged.keys.toList()), d(11, 13), predictor, dailyLogs = logs)
+
+    @Test
+    fun style_followsTheDesignOrder() {
+        // Logged flow wins over a phase (Nov 3 is menstrual and logged).
+        assertEquals(DayStyle.LOGGED_FLOW, mark(d(11, 3)).style)
+        // Spotting counts as logged flow.
+        val spotting = state(twoPeriods + (d(11, 6) to FlowLevel.SPOTTING), d(11, 13))
+        assertEquals(DayStyle.LOGGED_FLOW, spotting.markOn(d(11, 6)).style)
+        assertEquals(DayStyle.PREDICTED_PERIOD, mark(d(11, 30)).style)
+        // Ovulation Nov 16: ovulatory Nov 15-17.
+        assertEquals(DayStyle.OVULATORY, mark(d(11, 16)).style)
+        assertEquals(DayStyle.FOLLICULAR, mark(d(11, 13)).style)
+        assertEquals(DayStyle.LUTEAL, mark(d(11, 20)).style)
+        // Earlier cycles and days past the prediction have no style.
+        assertEquals(DayStyle.PLAIN, mark(d(10, 20)).style)
+        assertEquals(DayStyle.PLAIN, mark(d(12, 10)).style)
+    }
+
+    @Test
+    fun loggedFlowOnPredictedDay_isLoggedNotPredicted() {
+        val s = state(twoPeriods + (d(11, 30) to FlowLevel.LIGHT), d(11, 30))
+        assertEquals(DayStyle.LOGGED_FLOW, s.markOn(d(11, 30)).style)
+    }
+
+    @Test
+    fun loggedDot_isSymptomsOrMood_notFertile() {
+        val s = stateWithLogs(
+            mapOf(
+                log(d(11, 8), symptoms = setOf(Symptom.CRAMPS)),
+                log(d(11, 9), mood = Mood.CALM),
+                log(d(11, 10), noFlow = true),
+            ),
+        )
+        assertTrue(s.markOn(d(11, 8)).hasLoggedDot)
+        assertTrue(s.markOn(d(11, 9)).hasLoggedDot)
+        assertFalse("no flow alone isn't a dot", s.markOn(d(11, 10)).hasLoggedDot)
+        // Fertile but nothing logged: no dot (D5), fertile kept for screen readers.
+        val fertile = s.markOn(d(11, 12))
+        assertTrue(fertile.isFertile)
+        assertFalse(fertile.hasLoggedDot)
+    }
+
+    @Test
+    fun noFlowDay_isNotPredicted() {
+        val s = stateWithLogs(mapOf(log(d(12, 1), noFlow = true)))
+        assertTrue(s.markOn(d(11, 30)).isPredictedPeriod)
+        val m = s.markOn(d(12, 1))
+        assertTrue(m.noFlow)
+        assertFalse(m.isPredictedPeriod)
+        assertEquals(DayStyle.PLAIN, m.style)
+    }
+
+    @Test
+    fun noFlowIgnoredWhenFlowIsLogged() {
+        val s = stateWithLogs(mapOf(log(d(11, 3), noFlow = true)))
+        assertFalse(s.markOn(d(11, 3)).noFlow)
+        assertEquals(DayStyle.LOGGED_FLOW, s.markOn(d(11, 3)).style)
     }
 }
