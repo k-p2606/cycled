@@ -44,6 +44,9 @@ Cycled
         └── Profile   → settings, delete data
 ```
 
+## Demo
+[Screen_recording_20261124_202943.webm](https://github.com/user-attachments/assets/652196ac-53c1-45e1-8981-b135c4b83936)
+
 ---
 
 ## Tech stack
